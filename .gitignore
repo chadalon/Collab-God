@@ -26,3 +26,7 @@ Thumbs.db
 # Audio and project scratch
 *.wav.tmp
 /scratch/
+
+# Test runner output
+.vitest/
+coverage/
