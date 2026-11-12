@@ -16,7 +16,9 @@ v1 is a 2-person lobby on Windows and macOS that can carry one track from an emp
 
 **In v1**: desktop app for Windows and macOS; lobbies of two; presence; timeline with audio clips, MIDI clips, piano roll and automation; basic mixer; VST3 plugins that both people own, with live parameter and state sync; sample indexing, content matching and automatic transfer; save, load, per-person undo and stereo export; the core visual identity.
 
-**Not in v1**: plugins only one person owns; lobbies of three or more; first-party instruments and effects; microphone or line-in recording (open question); in-app voice chat; AU, CLAP and Linux; anything in a browser; anything social.
+**Not in v1**: plugins only one person owns; lobbies of three or more; first-party instruments and effects; microphone or line-in recording; in-app voice chat; AU, CLAP and Linux; anything in a browser; anything social.
+
+**Audio recording is out of v1** (decided 2026-11-11, issue #6). A take recorded in another program is dragged in as an audio file and reaches the other person through the normal sample transfer. MIDI keyboard recording stays in as DAW-9. When recording is added later, a recorded take should be treated as one more audio file, so it needs nothing new from the sync layer.
 
 ## Lobby and presence
 
