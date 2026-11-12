@@ -1,4 +1,4 @@
-# Collab God (working title)
+# CollabGod
 
 A cross-platform desktop DAW where two producers edit the same session at the same time, each running their own plugins and samples locally.
 
