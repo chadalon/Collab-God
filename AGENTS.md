@@ -44,6 +44,10 @@ The current phase is the earliest [milestone](../../milestones) that still has o
 | `spikes/session-model` | `npm test` | Unit, scenario and property tests |
 | `spikes/session-model` | `npm run typecheck` | Strict TypeScript check |
 | `spikes/session-model` | `FC_SCALE=40 npm test` | Property tests with 40 times as many random cases |
+| `spikes/relay` | `npm ci` | Install pinned dependencies (Node 22 or newer) |
+| `spikes/relay` | `npm test` | Relay tests over real sockets on this machine, including TLS where `openssl` is installed |
+| `spikes/relay` | `npm run typecheck` | Strict TypeScript check |
+| `spikes/relay` | `npm run relay -- serve` | Run a relay; `host` and `join` run the test between two locations (see its README) |
 
 A new package or spike with tests gets its own job in `.github/workflows/ci.yml`, added to the `needs` list of the `CI passed` job, and its commands get rows in this table. Code that CI does not run is not protected by the required check.
 
