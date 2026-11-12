@@ -1,6 +1,6 @@
 # ADR-0003: License
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-11-11
 - **Deciders:** Chad
 
@@ -14,7 +14,7 @@ This record is not legal advice. Get a licensing review before any commercial st
 
 ## Decision
 
-Proposed: **GPL-3.0-or-later** for the whole repository.
+**GPL-3.0-or-later** for the whole repository. The full text is in [`LICENSE`](../../LICENSE).
 
 ## Alternatives considered
 
@@ -30,4 +30,4 @@ Proposed: **GPL-3.0-or-later** for the whole repository.
 
 ## How we will know
 
-Chad confirms or changes the choice. The `LICENSE` file is added in the same pull request that marks this record Accepted.
+Chad confirmed GPL-3.0-or-later on 2026-11-11. Whether outside contributors sign a contributor agreement is still open and tracked in issue #2.
