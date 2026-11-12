@@ -45,6 +45,8 @@ The current phase is the earliest [milestone](../../milestones) that still has o
 | `spikes/session-model` | `npm run typecheck` | Strict TypeScript check |
 | `spikes/session-model` | `FC_SCALE=40 npm test` | Property tests with 40 times as many random cases |
 
+A new package or spike with tests gets its own job in `.github/workflows/ci.yml`, added to the `needs` list of the `CI passed` job, and its commands get rows in this table. Code that CI does not run is not protected by the required check.
+
 There is no application to build or run yet. That starts in Phase 1.
 
 ## Git and pull requests
@@ -54,6 +56,7 @@ There is no application to build or run yet. That starts in Phase 1.
 - Never commit generated output, dependencies, secrets or local paths.
 - Do not rewrite history on a branch someone else may have pulled.
 - Commit and pull request titles follow Conventional Commits: `feat(sync): order edits through the relay`.
+- Write `Closes #123` only if every acceptance criterion on the issue is met. Otherwise write `Refs #123` and list what is left.
 - Use the pull request template. Under "How it was tested", say exactly what you ran and what you could not check. Do not claim a check you did not run.
 - Do not merge. A maintainer reads and merges every pull request.
 - Do not change repository settings, milestones or label meanings, and do not close an issue whose acceptance criteria are not all met.
