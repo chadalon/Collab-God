@@ -1,6 +1,6 @@
-# Requirements (v0.2)
+# Requirements (v0.3)
 
-Fifty-six requirements across eight areas. Issues refer to these IDs.
+Fifty-seven requirements across eight areas. Issues refer to these IDs.
 
 Priority:
 
@@ -25,7 +25,7 @@ v1 is a 2-person lobby on Windows and macOS that can carry one track from an emp
 | LOB-1 | A user can create a lobby and receive an invite code. | Must |
 | LOB-2 | A second user can join with the code. Lobbies cap at two people in v1. | Must |
 | LOB-3 | A joiner receives the full session and ends in the same state as the host. | Must |
-| LOB-4 | Each person sees the other's playhead, pointer, selected tracks and selected clips, colour-coded. | Must |
+| LOB-4 | Each person always sees the other's playhead, pointer, selected tracks and selected clips, colour-coded. | Must |
 | LOB-5 | A session opens and works solo, with no lobby and no network. | Must |
 | LOB-6 | If the connection drops, both keep working locally and edits merge on reconnect. | Should |
 
@@ -39,7 +39,8 @@ v1 is a 2-person lobby on Windows and macOS that can carry one track from an emp
 | SYN-4 | Adding, removing, renaming and reordering tracks syncs live, as do mixer changes. | Must |
 | SYN-5 | Undo reverses only your own edits. | Must |
 | SYN-6 | Drags and knob turns stream as live previews, then commit as one edit. | Should |
-| SYN-7 | Each person has an independent playhead, with a mode to follow the other person's. | Should |
+| SYN-7 | Each person has their own transport: play, stop and playhead position are personal and are not part of the edit log. See ADR-0005. | Must |
+| SYN-8 | A follow mode locks your playhead to the other person's. | Should |
 
 ## Plugins
 
