@@ -14,7 +14,7 @@ A lobby always has a relay server in the middle, because home routers block most
 
 Every edit is an operation. The relay assigns each operation a sequence number, and every client applies operations in sequence order. A client applies its own operations immediately, then, when the relay's order arrives, rewinds any unconfirmed local operations, applies the confirmed ones, and reapplies its own.
 
-Undo is per person: it issues a new operation that inverts that person's most recent operation that is still in effect.
+Undo is per person: it issues a new operation that inverts that person's most recent operation that is still in effect. "Still in effect" is decided by revisions, not values: every editable field records the operation that last wrote it, an undo applies only while each field it would write was last written by the edit it reverses, and applying it restores the previous revision.
 
 ## Alternatives considered
 
@@ -32,3 +32,15 @@ Undo is per person: it issues a new operation that inverts that person's most re
 ## How we will know
 
 The Phase 0 session-model spike runs randomized two-client tests. Any divergence overturns this record.
+
+## Findings from the session-model spike (issue #9)
+
+Code and full write-up: [`spikes/session-model`](../../spikes/session-model).
+
+- **Convergence held.** Random interleavings of edits, undo, redo and delivery, with two and with three clients, always ended in the state of the relay's log.
+- **Value-based undo guards were wrong.** Comparing the target's current values with the values the original edit left failed in two ways under property testing: the other person changing a clip and putting it back, and an older undo firing because the other person happened to set the same value. Revision guards, as now described under Decision, fixed both. The cost is one operation id per editable field.
+- **Guards work per field.** Undoing a move keeps a length change the other person made to the same clip.
+- **Stale edits are dropped silently by the model.** The interface must tell the user when one of their edits had no effect.
+- **A whole-state copy per operation is too slow.** On a 5,000-clip session, receiving one remote edit with 20 unconfirmed local edits took 41 ms. The Phase 1 model needs structural sharing, or one mutable state rolled back with inverses.
+
+Still to confirm before this record is accepted: the same behaviour over a real network between two locations (issue #10), and de-duplication of operations resent after a reconnect.
