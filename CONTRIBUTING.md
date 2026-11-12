@@ -1,5 +1,7 @@
 # Contributing
 
+New here, or an AI agent starting a fresh session? Read [`AGENTS.md`](AGENTS.md) first. It says where the context lives and how to pick work.
+
 This project is run in short iterations with a small backlog that is kept honest. The rules below exist so that the code stays clean while the product changes shape.
 
 ## Workflow
@@ -8,7 +10,7 @@ This project is run in short iterations with a small backlog that is kept honest
 2. **Branch from `main`**: `feat/123-short-name`, `fix/123-short-name`, `spike/123-short-name`, `docs/123-short-name`.
 3. **Keep pull requests small.** One issue, one concern. A PR that needs a long description is usually two PRs.
 4. **Open the PR early** as a draft. Link the issue with `Closes #123`.
-5. **CI must pass** and the PR needs one review before merge.
+5. **CI must pass.** A maintainer reads every pull request before merging it. Agents and outside contributors never merge.
 6. **Squash merge.** The squash title follows [Conventional Commits](https://www.conventionalcommits.org): `feat(sync): order edits through the relay`.
 
 ## Issue types
@@ -23,6 +25,7 @@ This project is run in short iterations with a small backlog that is kept honest
 | `type: research` | Reading, testing other products, legal or licensing checks. |
 | `type: bug` | Something that worked and no longer does, or never matched its acceptance criteria. |
 | `idea` | Parked. Not designed, not estimated, not scheduled. |
+| `needs: local machine` | Depends on the maintainers' real hardware, plugins or sample libraries. Cannot be finished from a cloud session. |
 
 Priority labels match [`docs/requirements.md`](docs/requirements.md): `priority: must`, `priority: should`, `priority: later`.
 

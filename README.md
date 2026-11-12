@@ -43,6 +43,7 @@ These are proposals recorded in [`docs/adr`](docs/adr). Phase 0 confirms or repl
 - [Architecture decisions](docs/adr): one short record per decision
 - [Ideas](docs/ideas.md): things deliberately not being designed yet
 - [Contributing](CONTRIBUTING.md): workflow, definition of done, engineering rules
+- [Working on CollabGod](AGENTS.md): the starting point for a new contributor or AI agent
 
 ## License
 
