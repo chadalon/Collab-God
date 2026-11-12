@@ -1,6 +1,6 @@
 # Spike: session model with an ordered edit log
 
-Phase 0 spike for [issue #9](https://github.com/chadalon/Collab-God/issues/9). It tests the claim in [ADR-0004](../../docs/adr/0004-ordered-edit-log.md): if a relay puts everyone's edits into one order and each client applies its own edits optimistically, every client ends in the same state, and undo can be made to reverse only your own edits.
+Phase 0 spike for [issue #9](https://github.com/chadalon/collabgod/issues/9). It tests the claim in [ADR-0004](../../docs/adr/0004-ordered-edit-log.md): if a relay puts everyone's edits into one order and each client applies its own edits optimistically, every client ends in the same state, and undo can be made to reverse only your own edits.
 
 This is throwaway code. It exists to answer the question and to hand a tested design to the real package in Phase 1 (issues #23 and #24). It has no runtime dependencies.
 
