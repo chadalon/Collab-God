@@ -1,0 +1,29 @@
+name: Feature
+description: User-visible behaviour tied to a requirement
+labels: ["type: feature"]
+body:
+  - type: textarea
+    id: why
+    attributes:
+      label: Why
+      description: The problem this solves, in a sentence or two.
+    validations:
+      required: true
+  - type: textarea
+    id: done
+    attributes:
+      label: Done when
+      description: Acceptance criteria as a checklist. Each one must be demonstrable.
+      value: "- [ ] "
+    validations:
+      required: true
+  - type: input
+    id: requirements
+    attributes:
+      label: Requirements
+      description: IDs from docs/requirements.md, for example LOB-1, SYN-3.
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: Constraints, links, open questions.

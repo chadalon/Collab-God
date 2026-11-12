@@ -1,0 +1,31 @@
+name: Spike
+description: Time-boxed throwaway work that answers a question
+labels: ["type: spike"]
+body:
+  - type: textarea
+    id: question
+    attributes:
+      label: Question
+      description: The one question this spike answers.
+    validations:
+      required: true
+  - type: input
+    id: timebox
+    attributes:
+      label: Time box
+      description: Stop and write up what you have when this runs out.
+      placeholder: "2 days"
+    validations:
+      required: true
+  - type: textarea
+    id: done
+    attributes:
+      label: Done when
+      description: What the written finding must contain.
+      value: "- [ ] Finding written up in this issue\n- [ ] Related ADR updated"
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes

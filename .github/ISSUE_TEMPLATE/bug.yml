@@ -1,0 +1,32 @@
+name: Bug
+description: Something does not behave as its acceptance criteria say
+labels: ["type: bug"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What should have happened
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      value: "1. "
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: OS and version, app version or commit, audio interface, solo or in a lobby.
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or recordings
