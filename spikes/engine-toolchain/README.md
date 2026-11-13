@@ -50,7 +50,7 @@ Then play it:
 
 Add a path to any audio file after `play` to hear that file after the tone.
 
-On Windows the Visual Studio generator puts the binary under `Release\`. With Ninja or Makefiles it goes under `build/engine_spike_artefacts/Release/` on every system. To open the project in an IDE instead, add `-G Xcode` on macOS to the first command; on Windows the default generator already makes a Visual Studio solution in `build`.
+To open the project in an IDE instead, add `-G Xcode` on macOS to the first command; on Windows the default generator already makes a Visual Studio solution in `build`.
 
 ### Building against a local JUCE or Tracktion Engine
 
