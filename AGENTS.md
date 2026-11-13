@@ -49,6 +49,10 @@ The current phase is the earliest [milestone](../../milestones) that still has o
 | `spikes/relay` | `npm test` | Relay tests over real sockets on this machine, including TLS where `openssl` is installed |
 | `spikes/relay` | `npm run typecheck` | Strict TypeScript check |
 | `spikes/relay` | `npm run relay -- serve` | Run a relay; `host` and `join` run the test between two locations (see its README) |
+| `spikes/sample-transfer` | `npm ci` | Install pinned dependencies (Node 22 or newer). Run `npm ci` in `spikes/relay` too: this spike imports it |
+| `spikes/sample-transfer` | `npm test` | Unit tests, and transfers through a real relay over sockets on this machine |
+| `spikes/sample-transfer` | `npm run typecheck` | Strict TypeScript check |
+| `spikes/sample-transfer` | `npm run transfer -- share` | `share` and `fetch` measure a transfer between two locations through a relay (see its README) |
 
 A new package or spike with tests gets its own job in `.github/workflows/ci.yml`, added to the `needs` list of the `CI passed` job, and its commands get rows in this table. Code that CI does not run is not protected by the required check.
 

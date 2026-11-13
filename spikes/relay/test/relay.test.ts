@@ -180,6 +180,66 @@ describe('catching up', () => {
   });
 });
 
+describe('direct messages and binary frames', () => {
+  it('passes a direct message to one member, stamped with its sender, and keeps it out of the log', async () => {
+    const { a, b } = await lobby();
+    const arrived = b.waitFor(isType('direct'));
+    a.sendRaw(JSON.stringify({ type: 'direct', to: 'p2', from: 'p2', data: { want: 'abc', offset: 7 } }));
+    expect(await arrived).toEqual({ type: 'direct', from: 'p1', data: { want: 'abc', offset: 7 } });
+    a.sendOp('p1:1', 'edit');
+    await untilLog(b, 1);
+    expect(b.log.map((op) => op.op)).toEqual(['edit']);
+  });
+
+  it('passes binary frames through byte for byte, in order, stamped with their sender', async () => {
+    const { a, b } = await lobby();
+    const received: Buffer[] = [];
+    b.onBinary((from, payload) => {
+      expect(from).toBe('p1');
+      received.push(Buffer.from(payload));
+    });
+    const sent = Array.from({ length: 30 }, (_, i) => Buffer.alloc(1_000 + i * 997, i));
+    for (const payload of sent) a.sendBinary('p2', payload);
+    await until(() => received.length === sent.length, 'every frame arrived');
+    expect(received).toEqual(sent);
+  });
+
+  it('refuses direct and binary traffic for a member who is not connected, or from someone not in a lobby', async () => {
+    const { a, b } = await lobby();
+    const errors: string[] = [];
+    a.onMessage((message) => {
+      if (message.type === 'error') errors.push(message.code);
+    });
+    a.sendDirect('p9', 'hello');
+    a.sendBinary('p9', Buffer.from([1, 2, 3]));
+    await until(() => errors.length === 2, 'two errors arrived');
+    expect(errors).toEqual(['unknown-peer', 'unknown-peer']);
+
+    const outsider = await connect();
+    const refused = outsider.waitFor(isType('error'));
+    outsider.sendBinary('p2', Buffer.from([1]));
+    expect((await refused).code).toBe('not-joined');
+    await b.close();
+  });
+
+  it('drops binary frames for a member it already holds too much for, and says so', async () => {
+    await start({ maxBufferedBytes: 0 });
+    const { a, b } = await lobby();
+    // Stop B reading so the relay's buffer towards B fills up.
+    const errors: string[] = [];
+    a.onMessage((message) => {
+      if (message.type === 'error') errors.push(message.code);
+    });
+    (b as unknown as { socket: { pause(): void } }).socket.pause();
+    for (let i = 0; i < 200 && errors.length === 0; i += 1) {
+      a.sendBinary('p2', Buffer.alloc(512 * 1024));
+      await new Promise((resolve) => setTimeout(resolve, 5));
+    }
+    await until(() => errors.length > 0, 'the relay refused a frame');
+    expect(errors[0]).toBe('peer-busy');
+  });
+});
+
 describe('robustness', () => {
   it('answers malformed or out-of-turn messages with an error and keeps working', async () => {
     const a = await connect();

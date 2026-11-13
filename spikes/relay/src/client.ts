@@ -3,7 +3,7 @@
 import { performance } from 'node:perf_hooks';
 import type { TLSSocket } from 'node:tls';
 import { WebSocket } from 'ws';
-import type { ClientMessage, ErrorCode, ServerMessage, WireSequenced } from './protocol';
+import { type ClientMessage, decodeBinaryFrame, encodeBinaryFrame, type ErrorCode, type ServerMessage, type WireSequenced } from './protocol';
 
 export type Welcome = Extract<ServerMessage, { type: 'welcome' }>;
 
@@ -42,6 +42,8 @@ export class RelayClient {
   private readonly received: WireSequenced[] = [];
   private readonly opListeners = new Set<(op: WireSequenced) => void>();
   private readonly messageListeners = new Set<(message: ServerMessage) => void>();
+  private readonly binaryListeners = new Set<(from: string, payload: Buffer) => void>();
+  private readonly closeListeners = new Set<() => void>();
   private readonly pings = new Map<number, (rtt: number) => void>();
   private welcomeState: Welcome | undefined;
   private pending: { resolve: (welcome: Welcome) => void; reject: (error: Error) => void } | undefined;
@@ -49,10 +51,18 @@ export class RelayClient {
   private pingCounter = 0;
 
   private constructor(private readonly socket: WebSocket) {
-    socket.on('message', (data) => this.dispatch(JSON.parse(data.toString()) as ServerMessage));
+    socket.on('message', (data, isBinary) => {
+      if (isBinary) {
+        const frame = decodeBinaryFrame(data as Buffer);
+        if (frame !== undefined) for (const listener of this.binaryListeners) listener(frame.peer, frame.payload);
+        return;
+      }
+      this.dispatch(JSON.parse(data.toString()) as ServerMessage);
+    });
     socket.on('close', () => {
       this.pending?.reject(new Error('connection closed'));
       this.pending = undefined;
+      for (const listener of this.closeListeners) listener();
     });
   }
 
@@ -115,6 +125,42 @@ export class RelayClient {
 
   sendOp(opId: string, op: unknown): void {
     this.send({ type: 'op', opId, op });
+  }
+
+  /** Send `data` to one other member, outside the ordered log. */
+  sendDirect(to: string, data: unknown): void {
+    this.send({ type: 'direct', to, data });
+  }
+
+  /** Send bytes to one other member, outside the ordered log, as one binary frame. */
+  sendBinary(to: string, payload: Uint8Array): void {
+    if (this.socket.readyState === WebSocket.OPEN) this.socket.send(encodeBinaryFrame(to, payload));
+  }
+
+  /** Receive binary frames from other members. Returns an unsubscribe function. */
+  onBinary(listener: (from: string, payload: Buffer) => void): () => void {
+    this.binaryListeners.add(listener);
+    return () => this.binaryListeners.delete(listener);
+  }
+
+  /** Called once when the connection closes, for whatever reason. Returns an unsubscribe function. */
+  onClose(listener: () => void): () => void {
+    this.closeListeners.add(listener);
+    return () => this.closeListeners.delete(listener);
+  }
+
+  /** Bytes handed to this connection that the operating system has not yet taken. */
+  get bufferedAmount(): number {
+    return this.socket.bufferedAmount;
+  }
+
+  get open(): boolean {
+    return this.socket.readyState === WebSocket.OPEN;
+  }
+
+  /** Cut the connection without a closing handshake, as a dropped network would. */
+  terminate(): void {
+    this.socket.terminate();
   }
 
   /** Round trip to the relay itself, in milliseconds. Does not touch the lobby's log. */
@@ -185,7 +231,7 @@ export class RelayClient {
   }
 
   private send(message: ClientMessage): void {
-    this.socket.send(JSON.stringify(message));
+    if (this.socket.readyState === WebSocket.OPEN) this.socket.send(JSON.stringify(message));
   }
 
   private dispatch(message: ServerMessage): void {

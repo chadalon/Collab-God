@@ -32,7 +32,13 @@ export type ClientMessage =
    */
   | { readonly type: 'op'; readonly opId: string; readonly op: unknown }
   /** Answered at once with `pong`, outside the ordered log. For measuring latency to the relay. */
-  | { readonly type: 'ping'; readonly t: number };
+  | { readonly type: 'ping'; readonly t: number }
+  /**
+   * Pass `data` to one other member, outside the ordered log. Nothing is stored:
+   * if `to` is not connected the relay answers `unknown-peer` and drops it. For
+   * traffic that is not an edit, such as sample transfers (issue #16) and presence.
+   */
+  | { readonly type: 'direct'; readonly to: string; readonly data: unknown };
 
 /** Relay to client. */
 export type ServerMessage =
@@ -53,6 +59,8 @@ export type ServerMessage =
   | { readonly type: 'peer-joined'; readonly clientId: string }
   | { readonly type: 'peer-left'; readonly clientId: string }
   | { readonly type: 'pong'; readonly t: number }
+  /** A `direct` message from another member. `from` is stamped by the relay. */
+  | { readonly type: 'direct'; readonly from: string; readonly data: unknown }
   | { readonly type: 'error'; readonly code: ErrorCode; readonly message: string };
 
 export type ErrorCode =
@@ -67,7 +75,11 @@ export type ErrorCode =
   /** `op` sent before `create` or `join`. */
   | 'not-joined'
   /** An operation with this id has already been ordered in this lobby. It was not ordered again. */
-  | 'duplicate-op';
+  | 'duplicate-op'
+  /** A `direct` message or binary frame named a member who is not connected. It was dropped. */
+  | 'unknown-peer'
+  /** The relay already holds too much unsent data for that member. The binary frame was dropped. */
+  | 'peer-busy';
 
 /** Lobbies cap at two people in v1 (LOB-2). */
 export const ROOM_CAPACITY = 2;
@@ -92,6 +104,29 @@ export function formatCode(code: string): string {
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
+/**
+ * Binary frames carry bulk data between two members, outside the ordered log.
+ * Layout: one byte giving the length of a client id, that id in ASCII, then the
+ * payload. From a client the id names who it is for; the relay rewrites it to
+ * name who it came from. The relay never reads the payload.
+ */
+export function encodeBinaryFrame(peer: string, payload: Uint8Array): Buffer {
+  const id = Buffer.from(peer, 'ascii');
+  if (id.length === 0 || id.length > 255) throw new Error(`client id must be 1 to 255 bytes, got ${id.length}`);
+  const frame = Buffer.allocUnsafe(1 + id.length + payload.length);
+  frame[0] = id.length;
+  id.copy(frame, 1);
+  frame.set(payload, 1 + id.length);
+  return frame;
+}
+
+/** Split a binary frame into its client id and payload. Undefined if it is too short to hold them. */
+export function decodeBinaryFrame(frame: Buffer): { readonly peer: string; readonly payload: Buffer } | undefined {
+  const length = frame[0];
+  if (length === undefined || length === 0 || frame.length < 1 + length) return undefined;
+  return { peer: frame.toString('ascii', 1, 1 + length), payload: frame.subarray(1 + length) };
+}
+
 /** Parse and check a client frame. Returns undefined for anything the relay does not accept. */
 export function parseClientMessage(text: string): ClientMessage | undefined {
   let value: unknown;
@@ -114,6 +149,12 @@ export function parseClientMessage(text: string): ClientMessage | undefined {
     }
     case 'ping':
       return typeof value['t'] === 'number' && Number.isFinite(value['t']) ? { type: 'ping', t: value['t'] } : undefined;
+    case 'direct': {
+      const to = value['to'];
+      if (typeof to !== 'string' || to.length === 0 || to.length > 255) return undefined;
+      if (!('data' in value)) return undefined;
+      return { type: 'direct', to, data: value['data'] };
+    }
     default:
       return undefined;
   }
