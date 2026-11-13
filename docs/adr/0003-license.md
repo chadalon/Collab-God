@@ -30,4 +30,4 @@ This record is not legal advice. Get a licensing review before any commercial st
 
 ## How we will know
 
-Chad confirmed GPL-3.0-or-later on 2026-11-11. Whether outside contributors sign a contributor agreement is still open and tracked in issue #2.
+Chad confirmed GPL-3.0-or-later on 2026-11-11. On 2026-11-13 the stack moved to JUCE 9 (issue #7), which is also AGPLv3 or commercial, so nothing here changes. Whether outside contributors sign a contributor agreement is still open and tracked in issue #2.

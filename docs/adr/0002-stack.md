@@ -19,7 +19,7 @@ The parts that are new here, ordering, undo, convergence and presence, are pure 
 
 ## Decision
 
-- **Audio engine, plugin hosting, file and device access:** C++20 on JUCE 8 and Tracktion Engine.
+- **Audio engine, plugin hosting, file and device access:** C++20 on JUCE 9 and Tracktion Engine. Current Tracktion Engine is built on JUCE 9; its last JUCE 8 release is from May 2025 (issue #7, decided 2026-11-13).
 - **Interface:** TypeScript, running in JUCE's web view, with the timeline, meters and effects drawn on a GPU canvas.
 - **Session model, sync client and relay server:** TypeScript, in one package shared by the app, the relay and the tests.
 - **Source of truth:** the TypeScript session model. The C++ engine holds a projection of it and is told what changed.
@@ -39,7 +39,7 @@ The parts that are new here, ordering, undo, convergence and presence, are pure 
 - The engine and the model can disagree. The projection must be one-way and testable.
 - The web view differs between Windows and macOS. GPU canvas support must be checked on both.
 - The session package can run headless in CI and, later, in a browser.
-- The app must ship under a license compatible with GPLv3 (Tracktion Engine) and AGPLv3 (JUCE 8). See ADR-0003.
+- The app must ship under a license compatible with GPLv3 (Tracktion Engine) and AGPLv3 (JUCE 9). See ADR-0003.
 
 ## How we will know
 
