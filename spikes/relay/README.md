@@ -161,12 +161,12 @@ From this cloud session, on one machine. The numbers between two homes come from
 - Host to relay ping: median 22.1 ms, 95th 24.4 ms. Joiner to relay ping: median 37.7 ms, 95th 72.3 ms. The joiner's side is still the noisier one.
 - One run, one time of day, one slow laptop. A second run at another time, from a normal home connection, would make this firmer.
 
-**Run 3, 2026-11-13 01:38 UTC, option A** (same relay; host on a home connection in Chapel Hill; joiner on a normal home connection in Park City, with a 79 ms ping to the relay in South Carolina).
+**Run 3, 2026-11-13 01:38 UTC, option A** (same relay; host on a home connection in Chapel Hill; joiner on a normal home connection in Park City, Utah, with a 79 ms ping to the relay in South Carolina). By rough straight-line distance the host is about 300 km from the relay and the joiner about 2,900 km.
 
 - TLS 1.3 with a verified certificate on both sides. Late join caught up on 3 of 3 operations. 200 of 200 probes answered, 0 lost.
 - Estimated edit delay host → joiner: median 49.2 ms, 95th percentile 53.8 ms, maximum 147.8 ms. NFR-1 allows 150 ms at the 95th percentile, so it holds with about 96 ms of margin, from a joiner on a healthy machine with a slower path to the relay.
 - Host to relay ping: median 21.6 ms. Joiner to relay ping: median 79.3 ms, 95th 89.0 ms. The joiner's one-way leg is about 40 ms and the host's about 11 ms, which adds up to the 49 ms estimate, so the assumption that both directions take about the same time looks reasonable here.
-- The delay follows each person's path to the relay, so where a production relay sits will matter. This run had one person near the relay and one with a ping of about 79 ms; two people both far from it would see more.
+- The delay follows each person's path to the relay, so where a production relay sits will matter. This run had one person near the relay and one about 2,900 km away with a ping of about 79 ms, which is roughly three times what light in fibre would need over that distance, as real routes usually are. Two people both far from the relay would see more.
 
 ## Questions for the maintainers
 
