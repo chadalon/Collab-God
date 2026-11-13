@@ -1,6 +1,6 @@
-# Requirements (v0.3)
+# Requirements (v0.4)
 
-Fifty-seven requirements across eight areas. Issues refer to these IDs.
+Sixty-one requirements across eight areas. Issues refer to these IDs.
 
 Priority:
 
@@ -12,24 +12,29 @@ Numeric targets are proposals to confirm with measurements in Phase 0.
 
 ## v1 scope
 
-v1 is a 2-person lobby on Windows and macOS that can carry one track from an empty session to an exported mix.
+v1 is a lobby on Windows and macOS, built and tested for two people at once, that can carry one track from an empty session to an exported mix.
 
-**In v1**: desktop app for Windows and macOS; lobbies of two; presence; timeline with audio clips, MIDI clips, piano roll and automation; basic mixer; VST3 plugins that both people own, with live parameter and state sync; sample indexing, content matching and automatic transfer; save, load, per-person undo and stereo export; the core visual identity.
+**In v1**: desktop app for Windows and macOS; lobbies tested with two people connected at once; members who stay the same person when they come back; presence; timeline with audio clips, MIDI clips, piano roll and automation; basic mixer; VST3 plugins that both people own, with live parameter and state sync; sample indexing, content matching and automatic transfer; save, load, per-person undo and stereo export; the core visual identity.
 
-**Not in v1**: plugins only one person owns; lobbies of three or more; first-party instruments and effects; microphone or line-in recording; in-app voice chat; AU, CLAP and Linux; anything in a browser; anything social.
+**Not in v1**: plugins only one person owns; three or more people at once; accounts; first-party instruments and effects; microphone or line-in recording; in-app voice chat; AU, CLAP and Linux; anything in a browser; anything social.
 
 **Audio recording is out of v1** (decided 2026-11-11, issue #6). A take recorded in another program is dragged in as an audio file and reaches the other person through the normal sample transfer. MIDI keyboard recording stays in as DAW-9. When recording is added later, a recorded take should be treated as one more audio file, so it needs nothing new from the sync layer.
+
+**Lobby size and identity** (decided 2026-11-12, issue #94, ADR-0006). Nothing in the protocol, the session format or the model assumes two people. The relay limits how many are connected at once, and v1 sets that to two and is tested with two. A person is a member of the project, saved in the project, and stays the same person across connections. There are no accounts in v1: identity belongs to one install of the app. Requirements below that say "both" or "the other person" describe two people, the tested case.
 
 ## Lobby and presence
 
 | ID | Requirement | Priority |
 | --- | --- | --- |
 | LOB-1 | A user can create a lobby and receive an invite code. | Must |
-| LOB-2 | A second user can join with the code. Lobbies cap at two people in v1. | Must |
+| LOB-2 | Other people can join with the code. The host admits anyone joining for the first time. | Must |
 | LOB-3 | A joiner receives the full session and ends in the same state as the host. | Must |
 | LOB-4 | Each person always sees the other's playhead, pointer, selected tracks and selected clips, colour-coded. | Must |
 | LOB-5 | A session opens and works solo, with no lobby and no network. | Must |
 | LOB-6 | If the connection drops, both keep working locally and edits merge on reconnect. | Should |
+| LOB-7 | Each person is a member with a stable identity, and the member list is saved in the project. A dropped connection removes their presence, not their membership, and they return as the same person. See ADR-0006. | Must |
+| LOB-8 | The relay limits how many people are connected to a lobby at once. The limit is a relay setting, and v1 is tested with two. | Must |
+| LOB-9 | Anyone in the lobby can see who made a clip, a note or an edit. | Should |
 
 ## Sync
 
@@ -43,6 +48,7 @@ v1 is a 2-person lobby on Windows and macOS that can carry one track from an emp
 | SYN-6 | Drags and knob turns stream as live previews, then commit as one edit. | Should |
 | SYN-7 | Each person has their own transport: play, stop and playhead position are personal and are not part of the edit log. See ADR-0005. | Must |
 | SYN-8 | A follow mode locks your playhead to the other person's. | Should |
+| SYN-9 | Every operation records the member who made it, and who made what is saved with the project. | Must |
 
 ## Plugins
 
