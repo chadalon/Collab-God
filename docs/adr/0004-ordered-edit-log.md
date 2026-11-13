@@ -43,4 +43,6 @@ Code and full write-up: [`spikes/session-model`](../../spikes/session-model).
 - **Stale edits are dropped silently by the model.** The interface must tell the user when one of their edits had no effect.
 - **A whole-state copy per operation is too slow.** On a 5,000-clip session, receiving one remote edit with 20 unconfirmed local edits took 41 ms. The Phase 1 model needs structural sharing, or one mutable state rolled back with inverses.
 
-Still to confirm before this record is accepted: the same behaviour over a real network between two locations (issue #10), and de-duplication of operations resent after a reconnect.
+Over a real network (issue #10, `spikes/relay`): through a relay on a cloud server with TLS, between two machines on different networks, a late joiner caught up on all earlier operations, 200 of 200 operations were ordered and answered, and the estimated one-way edit delay was 28 ms at the median and 54 ms at the 95th percentile (NFR-1 allows 150 ms). That was one run, with one of the two machines on a slow laptop. The convergence tests of two replicas editing at once ran over real sockets on one machine, not between two locations.
+
+Still to confirm before this record is accepted: de-duplication of operations resent after a reconnect, and, if wanted, the convergence test between two locations.

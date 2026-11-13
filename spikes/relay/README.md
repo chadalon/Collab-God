@@ -110,6 +110,14 @@ npm run relay -- join wss://relay.example.com K7M-QX4 --where "your town"
 
 The test then runs by itself for about half a minute: person A sends 200 numbered probe operations through the relay, one every 100 ms, and person B's client answers each one the moment it arrives. Both print the same report, and B's adds its own rows. Leave both machines alone while it runs.
 
+**On Windows PowerShell,** `npm run relay -- ...` does not work as written: PowerShell's npm wrapper drops the `--`, so npm swallows options such as `--where` and `--port` and warns `Unknown cli config`, and a quoted `"your town"` is split into two words. Run the CLI directly instead, which behaves the same everywhere:
+
+```sh
+npx tsx src/cli.ts host wss://relay.example.com --where "your town"
+npx tsx src/cli.ts join wss://relay.example.com K7M-QX4 --where "your town"
+npx tsx src/cli.ts serve --port 8080
+```
+
 ### 3. Check and record
 
 Both reports must show:
@@ -135,6 +143,23 @@ From this cloud session, on one machine. The numbers between two homes come from
 5. **The relay must stamp the sender.** If clients said who they were, one person could send operations as the other and break the other's undo history. The relay ignores any sender a client claims.
 6. **Operation ids give de-duplication for free.** The relay refuses to order an id it has already ordered in that lobby. That is the relay's half of resending after a reconnect; the client's half is not built.
 7. **On one machine, over TLS, an operation reached the other person in about 1 ms.** This shows only that the relay adds almost nothing of its own. The network between two homes decides whether NFR-1 holds.
+
+## Results between two homes
+
+**Run 1, 2026-11-13 00:13 UTC, option B** (relay on the host's PC behind a Cloudflare quick tunnel; joiner on a phone hotspot, on a laptop that was running slowly; both in Chapel Hill). Partial: it shows the path works, not whether NFR-1 holds.
+
+- TLS 1.3 with a verified certificate on both sides. Late join caught up on 3 of 3 operations. 200 of 200 probes answered, 0 lost.
+- Estimated edit delay host → joiner: median 18 ms, 95th percentile 148.8 ms, maximum 231 ms. The 95th percentile is 1.2 ms under the NFR-1 limit of 150 ms, on a single 30-second run.
+- The host's own path was steady (median 6 ms, maximum 7.3 ms). The spread is on the joiner's side (ping 95th 71 ms, edit round trip 95th 192 ms), which fits a hotspot and a slow laptop. The test cannot separate the two.
+- Option B puts the relay on the host's home connection, so these numbers are not the path the product will use. A run against a cloud relay (option A) is still needed.
+- The report has no place name for the host because of the PowerShell problem described above.
+
+**Run 2, 2026-11-13 00:52 UTC, option A** (small Google Cloud VM in us-east1 behind Caddy at `relay.collabgod.com`; host on a home connection in Chapel Hill; joiner on the same slow laptop as run 1).
+
+- TLS 1.3 with a verified certificate on both sides. Late join caught up on 3 of 3 operations. 200 of 200 probes answered, 0 lost.
+- Estimated edit delay host → joiner: median 27.6 ms, 95th percentile 53.7 ms, maximum 109.5 ms. NFR-1 allows 150 ms, so this holds with about 96 ms of margin at the 95th percentile on this run.
+- Host to relay ping: median 22.1 ms, 95th 24.4 ms. Joiner to relay ping: median 37.7 ms, 95th 72.3 ms. The joiner's side is still the noisier one.
+- One run, one time of day, one slow laptop. A second run at another time, from a normal home connection, would make this firmer.
 
 ## Questions for the maintainers
 
