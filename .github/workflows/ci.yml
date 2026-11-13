@@ -79,7 +79,7 @@ jobs:
           cmake --build build --config Release --parallel 4
           echo "BUILD_SECONDS=$(( $(date +%s) - start ))" >> "$GITHUB_ENV"
       - name: Render and check
-        run: ctest --test-dir build -C Release --output-on-failure
+        run: ctest --test-dir build -C Release --output-on-failure --verbose
       - name: Record times
         if: always()
         run: |
