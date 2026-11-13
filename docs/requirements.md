@@ -1,4 +1,4 @@
-# Requirements (v0.4)
+# Requirements (v0.5)
 
 Sixty-one requirements across eight areas. Issues refer to these IDs.
 
@@ -20,14 +20,14 @@ v1 is a lobby on Windows and macOS, built and tested for two people at once, tha
 
 **Audio recording is out of v1** (decided 2026-11-11, issue #6). A take recorded in another program is dragged in as an audio file and reaches the other person through the normal sample transfer. MIDI keyboard recording stays in as DAW-9. When recording is added later, a recorded take should be treated as one more audio file, so it needs nothing new from the sync layer.
 
-**Lobby size and identity** (decided 2026-11-12, issue #94, ADR-0006). Nothing in the protocol, the session format or the model assumes two people. The relay limits how many are connected at once, and v1 sets that to two and is tested with two. A person is a member of the project, saved in the project, and stays the same person across connections. There are no accounts in v1: identity belongs to one install of the app. Requirements below that say "both" or "the other person" describe two people, the tested case.
+**Lobby size and identity** (decided 2026-11-12, issue #94, ADR-0006 and ADR-0007). Nothing in the protocol, the session format or the model assumes two people. The relay limits how many are connected at once, and v1 sets that to two and is tested with two. A person is a member of the project, saved in the project, and stays the same person across connections. There are no accounts in v1: identity belongs to one install of the app. Requirements below that say "both" or "the other person" describe two people, the tested case.
 
 ## Lobby and presence
 
 | ID | Requirement | Priority |
 | --- | --- | --- |
 | LOB-1 | A user can create a lobby and receive an invite code. | Must |
-| LOB-2 | Other people can join with the code. The host admits anyone joining for the first time. | Must |
+| LOB-2 | Other people can join with the code. Any connected member can admit someone joining for the first time. See ADR-0007. | Must |
 | LOB-3 | A joiner receives the full session and ends in the same state as the host. | Must |
 | LOB-4 | Each person always sees the other's playhead, pointer, selected tracks and selected clips, colour-coded. | Must |
 | LOB-5 | A session opens and works solo, with no lobby and no network. | Must |
