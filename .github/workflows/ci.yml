@@ -55,14 +55,54 @@ jobs:
       - run: npm run typecheck
       - run: npm test
 
+  engine-toolchain-spike:
+    name: Engine toolchain spike (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
+    defaults:
+      run:
+        working-directory: spikes/engine-toolchain
+        shell: bash
+    steps:
+      - uses: actions/checkout@v7
+      - name: Configure (downloads JUCE and Tracktion Engine)
+        run: |
+          start=$(date +%s)
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+          echo "CONFIGURE_SECONDS=$(( $(date +%s) - start ))" >> "$GITHUB_ENV"
+      - name: Build
+        run: |
+          start=$(date +%s)
+          cmake --build build --config Release --parallel 4
+          echo "BUILD_SECONDS=$(( $(date +%s) - start ))" >> "$GITHUB_ENV"
+      - name: Render and check
+        run: ctest --test-dir build -C Release --output-on-failure
+      - name: Record times
+        if: always()
+        run: |
+          {
+            echo "### Engine toolchain spike on ${{ matrix.os }}"
+            echo ""
+            echo "| Step | Seconds |"
+            echo "| --- | --- |"
+            echo "| Configure, including downloads | ${CONFIGURE_SECONDS:-failed} |"
+            echo "| Build | ${BUILD_SECONDS:-failed} |"
+            echo ""
+            echo "Runner: $(uname -a), $(nproc 2>/dev/null || sysctl -n hw.ncpu) cores"
+          } >> "$GITHUB_STEP_SUMMARY"
+
   # One stable check name for branch protection to require, however many jobs exist above.
   passed:
     name: CI passed
     if: always()
-    needs: [session-model-spike, relay-spike]
+    needs: [session-model-spike, relay-spike, engine-toolchain-spike]
     runs-on: ubuntu-latest
     steps:
       - name: Fail unless every job succeeded
         run: |
           test "${{ needs.session-model-spike.result }}" = "success"
           test "${{ needs.relay-spike.result }}" = "success"
+          test "${{ needs.engine-toolchain-spike.result }}" = "success"
