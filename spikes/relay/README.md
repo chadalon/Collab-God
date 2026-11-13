@@ -171,7 +171,7 @@ From this cloud session, on one machine. The numbers between two homes come from
 ## Questions for the maintainers
 
 - **What does "a lobby of two" mean when someone leaves?** Here it is two people connected at once: if one disconnects, anyone with the code can take the free place and receives the whole log. Should the second place instead belong to whoever first joined?
-  **Answered by [ADR-0006](../../docs/adr/0006-lobby-membership.md) (Proposed):** neither. A person is a member saved in the project, a dropped connection does not end their membership, and the limit of two becomes a relay setting that counts connections.
+  **Answered by [ADR-0006](../../docs/adr/0006-lobby-membership.md):** neither. A person is a member saved in the project, a dropped connection does not end their membership, and the limit of two becomes a relay setting that counts connections.
 - **Is a six-character code enough?** It gives about 729 million codes, and the relay does not limit how fast someone can guess. That is fine for a spike, not for a public relay.
   **Partly answered by ADR-0006:** the host admits first-time joiners, so a guessed code gets a request to join and not the session. Limits on guessing are still for issue #36.
 

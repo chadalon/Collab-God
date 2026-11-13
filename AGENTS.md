@@ -31,6 +31,7 @@ The current phase is the earliest [milestone](../../milestones) that still has o
 - **Every change to a session is an operation.** There is no other way to mutate state. Operations are deterministic and define what happens when their target is gone.
 - **Undo is guarded by revisions, not values.** See ADR-0004 and `spikes/session-model`. Comparing values was tried and was wrong.
 - **The audio thread never blocks.** No locks, allocation, file or network calls, or logging on it.
+- **A member is not a connection.** A person is a member saved in the project, with an opaque id the app makes. A dropped connection ends their presence, never their membership. Nothing in the protocol, the session format or the model may assume two people; the limit is a relay setting. See ADR-0006.
 - **Samples are identified by content hash.** A local file path never goes into a session or over the network. Plugin files never leave a machine.
 - **Spikes are throwaway.** Code under `spikes/` answers a question. Product code never imports from it.
 - **Licensing.** The project is GPL-3.0-or-later. Do not copy code from other DAWs. A new dependency must be GPLv3-compatible and listed in `THIRD_PARTY.md` once that file exists.

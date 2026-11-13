@@ -1,6 +1,6 @@
 # ADR-0006: Lobby members are persistent, connections are not
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-11-12
 - **Deciders:** Chad
 
