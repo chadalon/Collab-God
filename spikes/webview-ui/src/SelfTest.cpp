@@ -110,7 +110,7 @@ void testContract (Checker& c, const juce::File& contractDir)
     c.check (matchesContract (roundTripped, frameExample, error), "a frame survives JSON " + error);
     c.check (roundTripped["extraLevelsDb"].size() == 3, "extra meters are added on request");
 
-    const auto info = buildHostInfo ({ true, "simulated", "test", 44100.0, 441 }, { 812.0, 2, false }, { webViewName(), "vblank", "none" });
+    const auto info = buildHostInfo ({ true, "simulated", "test", 44100.0, 441 }, { 812.0, 2, 1, false }, { webViewName(), "vblank", "none" });
     c.check (matchesContract (info, hostExample, error), "host info matches the contract " + error);
 
     // And the checker itself notices a difference.
@@ -132,8 +132,19 @@ void testEngine (Checker& c)
     const auto settle = host.getSettleInfo();
     c.check (host.isSettled(), "the engine settles");
     log ("      settled after " + juce::String (settle.ms, 0) + " ms, " + juce::String (settle.contextChanges)
-         + " context changes" + (settle.timedOut ? ", TIMED OUT waiting for a quiet context" : ""));
+         + " context changes, " + juce::String (settle.deviceChanges) + " device list changes"
+         + (settle.timedOut ? ", TIMED OUT waiting for a quiet context" : ""));
     c.check (! settle.timedOut, "settling saw playbackContextChanged and did not need the time-out");
+
+    // Let start-up finish in wall-clock time, as it would with a window open: the
+    // engine's own device scans run on message-thread timers. A stop they cause is
+    // resumed by the host; report it, since it means settling was not enough.
+    const auto warmUpEnd = juce::Time::getMillisecondCounterHiRes() + 600.0;
+    while (juce::Time::getMillisecondCounterHiRes() < warmUpEnd)
+        play (host, 0.05);
+    const auto start = host.snapshot();
+    log ("      unexpected stops during start-up, resumed by the host: " + juce::String (start.unexpectedStops));
+    c.check (start.playing, "the play request made before settling took effect afterwards");
 
     // Play a second: the transport runs and both meters move.
     float maxLeft = -100.0f, maxRight = -100.0f;
@@ -146,8 +157,10 @@ void testEngine (Checker& c)
         return true;
     });
     auto s = host.snapshot();
-    c.check (s.playing, "the play request made before settling took effect afterwards");
-    c.check (s.audibleSec > 0.8 && s.audibleSec < 1.1, "one second of audio moves the audible position about a second (" + juce::String (s.audibleSec, 3) + " s)");
+    auto moved = s.audibleSec - start.audibleSec;
+    if (moved < 0.0)
+        moved += EngineHost::loopSeconds;
+    c.check (s.playing && moved > 0.85 && moved < 1.1, "one second of audio moves the audible position about a second (" + juce::String (moved, 3) + " s)");
     c.check (maxLeft > -30.0f && maxRight > -30.0f, "both master meters move (peaks " + juce::String (maxLeft, 1) + " and " + juce::String (maxRight, 1) + " dB)");
     c.check (frames >= 58 && frames <= 61, "the host ticked about 60 times a second of audio (" + juce::String (frames) + ")");
 

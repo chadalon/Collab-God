@@ -13,6 +13,7 @@
   "settle": {
     "ms": 1240.5,
     "contextChanges": 2,
+    "deviceChanges": 1,
     "timedOut": false
   },
   "emit": "vblank",

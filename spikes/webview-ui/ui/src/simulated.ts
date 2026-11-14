@@ -117,7 +117,7 @@ export class SimulatedHost implements JuceBackend {
           webView: 'simulated (no C++ host)',
           juceVersion: 'none',
           audio: { simulated: true, type: 'simulated', name: 'none', sampleRate: 44100, blockSize: 441 },
-          settle: { ms: 0, contextChanges: 0, timedOut: false },
+          settle: { ms: 0, contextChanges: 0, deviceChanges: 0, timedOut: false },
           emit: 'timer:60',
           autorun: 'none',
         };

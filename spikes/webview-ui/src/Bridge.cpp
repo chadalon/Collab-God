@@ -94,6 +94,7 @@ juce::var buildHostInfo (const AudioInfo& audio, const SettleInfo& settle, const
         { "settle", makeObject ({
               { "ms", round (settle.ms, 1) },
               { "contextChanges", settle.contextChanges },
+              { "deviceChanges", settle.deviceChanges },
               { "timedOut", settle.timedOut },
           }) },
         { "emit", d.emit },

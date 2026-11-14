@@ -10,7 +10,10 @@ namespace
 {
 /** Settled once the playback context has been left alone this long... */
 constexpr double settleQuietMs = 300.0;
-/** ...or, if it never changes, after this long, reported as timed out. */
+/** ...and once the engine's first MIDI device scan has reported, or this long has passed
+    (a machine with no MIDI devices may never report one)... */
+constexpr double firstDeviceScanMaxMs = 1500.0;
+/** ...or, if the context never goes quiet, after this long, reported as timed out. */
 constexpr double settleMaxMs = 3000.0;
 /** A transport stopped this long while the user wants it playing is resumed (finding 10). */
 constexpr double resumeAfterMs = 150.0;
@@ -93,6 +96,7 @@ EngineHost::EngineHost (Audio audio)
 
     buildEdit();
     edit->getTransport().addListener (this);
+    engine->getDeviceManager().addChangeListener (this);
     startSettling();
 
     if (audio == Audio::simulatedRealtime)
@@ -112,6 +116,7 @@ EngineHost::~EngineHost()
     if (auto m = attachedMeasurer.get())
         m->removeClient (levelClient);
 
+    engine->getDeviceManager().removeChangeListener (this);
     edit->getTransport().removeListener (this);
     edit->getTransport().stop (false, false);
     edit.reset();
@@ -212,6 +217,22 @@ void EngineHost::playbackContextChanged()
          + " (" + juce::String (contextRebuilds) + " so far)");
 }
 
+void EngineHost::changeListenerCallback (juce::ChangeBroadcaster*)
+{
+    // The device manager says its device lists changed. When the MIDI list changes it
+    // has already released and rebuilt every playing edit's devices, which stops the
+    // transport (finding 10); no playbackContextChanged comes with it.
+    lastDeviceChange = juce::Time::getMillisecondCounterHiRes();
+
+    if (! settled)
+        ++settleInfo.deviceChanges;
+
+    auto& dm = engine->getDeviceManager();
+    log ("Device lists changed: " + juce::String (dm.getNumMidiInDevices()) + " MIDI in, "
+         + juce::String (dm.getNumMidiOutDevices()) + " MIDI out"
+         + (settled ? "" : " (while settling)"));
+}
+
 void EngineHost::tick()
 {
     const double now = juce::Time::getMillisecondCounterHiRes();
@@ -219,8 +240,17 @@ void EngineHost::tick()
 
     if (! settled)
     {
-        const bool quiet = settleInfo.contextChanges > 0 && transport.isPlayContextActive()
-                           && now - lastContextChange >= settleQuietMs;
+        // Quiet means quiet across ticks we actually ran. Measuring from the last change
+        // alone is fooled when the message thread stalls (opening the window took 2.7 s on
+        // Linux): the first tick after the stall would see "long ago" while a device change
+        // message is still queued behind it.
+        const bool ready = settleInfo.contextChanges > 0 && transport.isPlayContextActive()
+                           && (settleInfo.deviceChanges > 0 || now - settleStart >= firstDeviceScanMaxMs);
+
+        if (! ready || quietSince < 0.0 || juce::jmax (lastContextChange, lastDeviceChange) > quietSince)
+            quietSince = ready ? now : -1.0;
+
+        const bool quiet = ready && now - quietSince >= settleQuietMs;
         const bool tooLong = now - settleStart >= settleMaxMs;
 
         if (quiet || tooLong)
@@ -228,8 +258,9 @@ void EngineHost::tick()
             settled = true;
             settleInfo.ms = now - settleStart;
             settleInfo.timedOut = ! quiet;
-            log ("Engine settled after " + juce::String (settleInfo.ms, 0) + " ms and "
-                 + juce::String (settleInfo.contextChanges) + " context changes"
+            log ("Engine settled after " + juce::String (settleInfo.ms, 0) + " ms, "
+                 + juce::String (settleInfo.contextChanges) + " context changes and "
+                 + juce::String (settleInfo.deviceChanges) + " device list changes"
                  + (settleInfo.timedOut ? " (timed out waiting for a quiet context)" : ""));
 
             if (wantPlaying)

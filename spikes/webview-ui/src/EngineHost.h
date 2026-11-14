@@ -23,6 +23,7 @@ struct SettleInfo
 {
     double ms = 0.0;
     int contextChanges = 0;
+    int deviceChanges = 0;
     bool timedOut = false;
 };
 
@@ -49,13 +50,18 @@ struct Snapshot
 
     Two lessons from spikes/engine-toolchain are built in:
     - Finding 8: a play pressed before the engine settles is lost. Play requests
-      wait until the playback context has been rebuilt and then left alone for a
-      while, judged by TransportControl::Listener::playbackContextChanged.
+      wait until the playback context has been created, the engine's first MIDI
+      device scan has reported, and both have then been left alone for a while, judged by
+      TransportControl::Listener::playbackContextChanged and the device manager's
+      change messages. (The engine's own MIDI scans run on a message-thread timer and
+      can land after the context exists: on the macOS CI runner one stopped the
+      transport just after play.)
     - Finding 10 (#101): a change in the MIDI device list stops the transport.
       If the transport stops while the user wants it playing, the host presses
       play again at the same position and counts it.
 */
-class EngineHost : private te::TransportControl::Listener
+class EngineHost : private te::TransportControl::Listener,
+                   private juce::ChangeListener
 {
 public:
     enum class Audio
@@ -98,6 +104,7 @@ public:
 
 private:
     void playbackContextChanged() override;
+    void changeListenerCallback (juce::ChangeBroadcaster*) override;
     void createEngine (bool simulated);
     void buildEdit();
     void startSettling();
@@ -112,7 +119,8 @@ private:
     AudioInfo audioInfo;
 
     // Settling (finding 8)
-    double settleStart = 0.0, lastContextChange = 0.0;
+    double settleStart = 0.0, lastContextChange = 0.0, lastDeviceChange = 0.0;
+    double quietSince = -1.0;   // first tick since the last change at which we were ready, or -1
     bool settled = false;
     SettleInfo settleInfo;
     int contextRebuilds = 0;

@@ -174,6 +174,24 @@ void WebUi::saveReport (const Args& a, Completion done)
 
     log ((written ? "Report saved to " : "FAIL could not write ") + file.getFullPathName());
     log ("Verdict: " + report["verdict"]["summary"].toString());
+
+    // The main numbers in the log too, so a CI log or a pasted log carries them.
+    const auto caps = report["capabilities"];
+    log ("Web view: " + caps["userAgent"].toString());
+    log ("WebGL2: " + juce::String (static_cast<bool> (caps["webgl2"]["available"]) ? "yes, " + caps["webgl2"]["renderer"].toString() : "no")
+         + "; WebGPU: " + juce::String (! static_cast<bool> (caps["webgpu"]["api"]) ? "no API"
+                                        : static_cast<bool> (caps["webgpu"]["adapter"]) ? "yes" : "API but no adapter"));
+
+    if (const auto* phases = report["phases"].getArray())
+        for (const auto& p : *phases)
+            log (p["name"].toString().paddedRight (' ', 14) + juce::String (static_cast<double> (p["fps"]), 1) + " fps, frame p95 "
+                 + p["frameIntervalMs"]["p95"].toString() + " ms, " + p["longFrames"].toString() + " over 25 ms, data every "
+                 + p["dataIntervalMs"]["p50"].toString() + " ms (p95 " + p["dataIntervalMs"]["p95"].toString() + "), "
+                 + (static_cast<bool> (p["holds60"]) ? "holds 60" : "below 60"));
+
+    const auto rt = report["roundTrip"];
+    log ("Ping p50 " + rt["pingMs"]["p50"].toString() + " ms, p95 " + rt["pingMs"]["p95"].toString()
+         + " ms; seek heard p50 " + rt["seekAudibleMs"]["p50"].toString() + " ms, p95 " + rt["seekAudibleMs"]["p95"].toString() + " ms");
     if (errors.isArray())
         for (const auto& e : *errors.getArray())
             log ("Report error: " + e.toString());

@@ -31,7 +31,7 @@ Native functions, called through JUCE's `__juce__invoke` event. Each returns a p
 
 | Function | Arguments | Returns |
 | --- | --- | --- |
-| `hello` | none | [`host-info.example.json`](host-info.example.json) |
+| `hello` | none | [`host-info.example.json`](host-info.example.json), sent once the engine has settled. `settle` says how long that took and how many playback context and device list changes it waited through |
 | `ping` | any value | the same value, straight back: the bridge round trip with no engine work |
 | `seek` | seconds | `{ "ok": true }` once the transport has been told; the page then watches `audibleSec` to see when the audio thread got there |
 | `setPlaying` | boolean | `{ "playing": boolean }` |

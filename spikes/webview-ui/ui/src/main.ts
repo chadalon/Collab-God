@@ -218,7 +218,7 @@ class App implements BenchTarget {
     statsEl.textContent = [
       `${this.host.webView} on ${this.host.platform}; ${this.renderer.name}; ${clipCount.toLocaleString()} clips on ${trackCount} tracks`,
       describeCapabilities(this.capabilities),
-      `Audio: ${a.simulated ? 'simulated sound card' : `${a.type} / ${a.name}`}, ${a.sampleRate} Hz, ${a.blockSize} samples; settled in ${this.host.settle.ms.toFixed(0)} ms after ${this.host.settle.contextChanges} context changes${this.host.settle.timedOut ? ' (TIMED OUT)' : ''}`,
+      `Audio: ${a.simulated ? 'simulated sound card' : `${a.type} / ${a.name}`}, ${a.sampleRate} Hz, ${a.blockSize} samples; settled in ${this.host.settle.ms.toFixed(0)} ms after ${this.host.settle.contextChanges} context and ${this.host.settle.deviceChanges} device list changes${this.host.settle.timedOut ? ' (TIMED OUT)' : ''}`,
       `Draw: ${fps.toFixed(1)} fps, frame p95 ${fi.p95.toFixed(1)} ms, max ${fi.max.toFixed(1)} ms; script p95 ${st.p95.toFixed(2)} ms`,
       `Data (${this.transport}, ${this.host.emit}): every ${di.p50.toFixed(1)} ms, p95 ${di.p95.toFixed(1)} ms; ${this.extraMeters} extra meters`,
       f === undefined

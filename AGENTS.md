@@ -56,6 +56,13 @@ The current phase is the earliest [milestone](../../milestones) that still has o
 | `spikes/engine-toolchain` | `cmake -S . -B build -DCMAKE_BUILD_TYPE=Release` | Configure; downloads pinned JUCE and Tracktion Engine (CMake 3.22 or newer, a C++20 compiler) |
 | `spikes/engine-toolchain` | `cmake --build build --config Release --parallel` | Build `engine_spike`. A cold build takes minutes; lower `--parallel` if the compiler runs out of memory |
 | `spikes/engine-toolchain` | `ctest --test-dir build -C Release --output-on-failure` | Render a tone and a file offline and play them through a simulated sound card, checking both; also checks that a MIDI device change still stops playback (a known Tracktion behaviour, #101). Needs no audio device |
+| `spikes/webview-ui/ui` | `npm ci` | Install the page's pinned build and test tools (Node 22 or newer) |
+| `spikes/webview-ui/ui` | `npm test` | Bridge contract, camera, scene, statistics and benchmark tests |
+| `spikes/webview-ui/ui` | `npm run typecheck` | Strict TypeScript check |
+| `spikes/webview-ui/ui` | `npm run build` | Bundle the page into `ui/dist`, which the app serves; run it before the app |
+| `spikes/webview-ui` | `cmake -S . -B build -DCMAKE_BUILD_TYPE=Release` | Configure; same pinned JUCE and Tracktion Engine as `engine-toolchain` (`engine-toolchain/cmake/EngineDependencies.cmake`), plus the WebView2 SDK on Windows |
+| `spikes/webview-ui` | `cmake --build build --config Release --parallel 2` | Build `webview_spike`. Two jobs on an 8 GB machine |
+| `spikes/webview-ui` | `ctest --test-dir build -C Release --output-on-failure` | Self-test: page serving, bridge contract, engine settling, seek, looping, and resuming after a MIDI device change. Needs no window or audio device |
 
 A new package or spike with tests gets its own job in `.github/workflows/ci.yml`, added to the `needs` list of the `CI passed` job, and its commands get rows in this table. Code that CI does not run is not protected by the required check.
 

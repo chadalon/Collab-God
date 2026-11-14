@@ -169,6 +169,7 @@ jobs:
               echo '```json'
               cat end-to-end/report-*.json
               echo '```'
+              cat end-to-end/report-*.json >&2  # into the log too, where the API can read it
             else
               echo "No end-to-end report. Log:"
               echo '```'

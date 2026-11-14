@@ -34,7 +34,7 @@ export interface HostInfo {
   webView: string;
   juceVersion: string;
   audio: AudioInfo;
-  settle: { ms: number; contextChanges: number; timedOut: boolean };
+  settle: { ms: number; contextChanges: number; deviceChanges: number; timedOut: boolean };
   emit: string;
   /** "none", "full" or "quick": run the benchmark as soon as the page loads. */
   autorun: string;
@@ -132,6 +132,7 @@ export function decodeHostInfo(value: unknown): HostInfo {
     settle: {
       ms: num(settle, 'ms', 'hostInfo.settle'),
       contextChanges: num(settle, 'contextChanges', 'hostInfo.settle'),
+      deviceChanges: num(settle, 'deviceChanges', 'hostInfo.settle'),
       timedOut: bool(settle, 'timedOut', 'hostInfo.settle'),
     },
     emit: str(o, 'emit', 'hostInfo'),
