@@ -30,7 +30,7 @@ The session stores references, not files:
 
 | Part | Choice |
 | --- | --- |
-| Audio engine, plugin hosting | C++20, [JUCE 8](https://juce.com), [Tracktion Engine](https://github.com/Tracktion/tracktion_engine) |
+| Audio engine, plugin hosting | C++20, [JUCE 9](https://juce.com), [Tracktion Engine](https://github.com/Tracktion/tracktion_engine) |
 | Interface | TypeScript in JUCE's web view, timeline on a GPU canvas |
 | Session model, sync, relay server | TypeScript, one package shared by app, relay and tests |
 

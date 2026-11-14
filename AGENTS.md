@@ -53,6 +53,9 @@ The current phase is the earliest [milestone](../../milestones) that still has o
 | `spikes/sample-index` | `npm test` | Hashing, scanning, rescans, near matches and overlap on generated files |
 | `spikes/sample-index` | `npm run typecheck` | Strict TypeScript check |
 | `spikes/sample-index` | `npm run samples -- scan <folder> --index <file>` | Index sample folders; `export`, `compare`, `near` and `generate` are in its README |
+| `spikes/engine-toolchain` | `cmake -S . -B build -DCMAKE_BUILD_TYPE=Release` | Configure; downloads pinned JUCE and Tracktion Engine (CMake 3.22 or newer, a C++20 compiler) |
+| `spikes/engine-toolchain` | `cmake --build build --config Release --parallel` | Build `engine_spike`. A cold build takes minutes; lower `--parallel` if the compiler runs out of memory |
+| `spikes/engine-toolchain` | `ctest --test-dir build -C Release --output-on-failure` | Render a tone and a file offline and play them through a simulated sound card, checking both; also checks that a MIDI device change still stops playback (a known Tracktion behaviour, #101). Needs no audio device |
 
 A new package or spike with tests gets its own job in `.github/workflows/ci.yml`, added to the `needs` list of the `CI passed` job, and its commands get rows in this table. Code that CI does not run is not protected by the required check.
 
