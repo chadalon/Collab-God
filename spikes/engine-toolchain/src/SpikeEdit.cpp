@@ -93,4 +93,18 @@ bool writeSineWav (const juce::File& file, double hz, float amplitude, double se
     return writer != nullptr && writer->writeFromAudioSampleBuffer (buffer, 0, numSamples);
 }
 
+bool writeWav (const juce::File& file, const juce::AudioBuffer<float>& buffer, double sampleRate)
+{
+    file.deleteFile();
+    std::unique_ptr<juce::OutputStream> stream = std::make_unique<juce::FileOutputStream> (file);
+
+    juce::WavAudioFormat wav;
+    auto writer = wav.createWriterFor (stream, juce::AudioFormatWriterOptions{}
+                                                   .withSampleRate (sampleRate)
+                                                   .withNumChannels (buffer.getNumChannels())
+                                                   .withBitsPerSample (24));
+
+    return writer != nullptr && writer->writeFromAudioSampleBuffer (buffer, 0, buffer.getNumSamples());
+}
+
 } // namespace spike

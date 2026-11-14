@@ -10,8 +10,9 @@ It is throwaway code. Product code never includes it.
 
 | Command | What it does |
 | --- | --- |
-| `engine_spike play [file]` | Opens the default output device and plays a 440 Hz sine tone for one second, then the file. With no file it plays a generated 660 Hz test tone in its place. WAV, AIFF, FLAC and Ogg are safe choices. |
+| `engine_spike play [file]` | Opens the default output device and plays a 440 Hz sine tone for one second, then the file, printing the transport's state four times a second. Gives up five seconds after the end if playback stalls. With no file it plays a generated 660 Hz test tone in its place. WAV, AIFF, FLAC and Ogg are safe choices. |
 | `engine_spike check [--out dir]` | Opens no device. Builds the same edit, renders it to `render.wav`, and checks it: 440 Hz in the first second and no 660 Hz, 660 Hz in the second and the 440 Hz tone at least 40 dB down, no clipping, two seconds long. Exits 0 on pass. `ctest` runs this. |
+| `engine_spike live-check [--out dir]` | Opens no device. Plays the same edit through Tracktion Engine's hosted audio device, which the program drives block by block as a sound card would, using the same transport code as `play`. Checks the result the same way and fails if playback never reaches the end. `ctest` runs this too. |
 
 The edit has two audio tracks. Track 1 holds Tracktion Engine's Tone Generator plugin, with its level automated to silence at one second. Track 2 holds the file as an audio clip starting at one second. So both a generator plugin and a file clip, and one automation curve, go through the engine's real playback graph.
 

@@ -27,6 +27,9 @@ void registerSpikePlugins (te::Engine&);
 std::unique_ptr<te::Edit> createSpikeEdit (te::Engine&, const EditPlan&, te::Edit::EditRole, juce::String& error);
 
 /** Writes a mono 16-bit WAV containing a sine wave. Used to make the test file. */
+/** Writes a 24-bit WAV of the buffer. */
+bool writeWav (const juce::File&, const juce::AudioBuffer<float>&, double sampleRate);
+
 bool writeSineWav (const juce::File&, double hz, float amplitude, double seconds, double sampleRate);
 
 } // namespace spike

@@ -21,6 +21,7 @@ struct Window
 };
 
 /** Reads a rendered file and checks each window. Writes a human-readable report.
+    Pass a negative expectedLengthSeconds to skip the length check.
     Returns true if every window passed. */
 bool checkRender (const juce::File&, const std::vector<Window>&, double expectedLengthSeconds, juce::String& report);
 

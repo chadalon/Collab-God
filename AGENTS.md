@@ -51,7 +51,7 @@ The current phase is the earliest [milestone](../../milestones) that still has o
 | `spikes/relay` | `npm run relay -- serve` | Run a relay; `host` and `join` run the test between two locations (see its README) |
 | `spikes/engine-toolchain` | `cmake -S . -B build -DCMAKE_BUILD_TYPE=Release` | Configure; downloads pinned JUCE and Tracktion Engine (CMake 3.22 or newer, a C++20 compiler) |
 | `spikes/engine-toolchain` | `cmake --build build --config Release --parallel` | Build `engine_spike`. A cold build takes minutes; lower `--parallel` if the compiler runs out of memory |
-| `spikes/engine-toolchain` | `ctest --test-dir build -C Release --output-on-failure` | Render a tone and a file offline and check the result; needs no audio device |
+| `spikes/engine-toolchain` | `ctest --test-dir build -C Release --output-on-failure` | Render a tone and a file offline, and play them through a simulated sound card, checking both; needs no audio device |
 
 A new package or spike with tests gets its own job in `.github/workflows/ci.yml`, added to the `needs` list of the `CI passed` job, and its commands get rows in this table. Code that CI does not run is not protected by the required check.
 

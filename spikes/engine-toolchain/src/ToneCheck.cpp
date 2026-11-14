@@ -55,7 +55,7 @@ bool checkRender (const juce::File& file, const std::vector<Window>& windows,
     report << "Rendered " << file.getFileName() << ": " << static_cast<int> (reader->numChannels) << " channels, "
            << sampleRate << " Hz, " << juce::String (lengthSeconds, 3) << " s\n";
 
-    if (std::abs (lengthSeconds - expectedLengthSeconds) > 0.05)
+    if (expectedLengthSeconds > 0.0 && std::abs (lengthSeconds - expectedLengthSeconds) > 0.05)
     {
         report << "FAIL length: expected about " << expectedLengthSeconds << " s\n";
         passed = false;

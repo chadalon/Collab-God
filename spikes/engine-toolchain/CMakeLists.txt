@@ -121,3 +121,10 @@ endif()
 enable_testing()
 add_test(NAME render_and_check
     COMMAND engine_spike check --out ${CMAKE_BINARY_DIR}/render-check)
+
+# Test: play the same edit through a simulated sound card, driving the transport
+# as `play` does, and check what came out. Catches a transport that never starts
+# or never reaches the end, which an offline render cannot.
+add_test(NAME live_play_and_check
+    COMMAND engine_spike live-check --out ${CMAKE_BINARY_DIR}/live-check)
+set_tests_properties(live_play_and_check PROPERTIES TIMEOUT 60)
