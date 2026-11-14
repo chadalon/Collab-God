@@ -224,6 +224,20 @@ void testEngine (Checker& c)
     play (host, 0.3);
     c.check (! host.snapshot().playing && host.snapshot().unexpectedStops == s.unexpectedStops, "a stop the user asks for stays stopped");
 }
+void testSettleAfterStall (Checker& c)
+{
+    // Opening the window and web view held the message thread for 3 to 4.5 s on the CI
+    // runners, longer than the settle time-out. Settling must still wait for what was
+    // queued during the stall rather than time out on the first tick.
+    EngineHost host (EngineHost::Audio::simulatedManual);
+    juce::Thread::sleep (3500);
+    pumpUntil ([&] { host.tick(); return host.isSettled(); }, 5000.0);
+    const auto settle = host.getSettleInfo();
+    log ("      after a 3.5 s stall: settled after " + juce::String (settle.ms, 0) + " ms, "
+         + juce::String (settle.contextChanges) + " context changes, " + juce::String (settle.deviceChanges)
+         + " device list changes");
+    c.check (host.isSettled() && ! settle.timedOut, "a stalled message thread does not make settling time out");
+}
 } // namespace
 
 int runSelfTest (const juce::File& contractDir)
@@ -235,6 +249,8 @@ int runSelfTest (const juce::File& contractDir)
     testContract (c, contractDir);
     log ("Self-test: engine");
     testEngine (c);
+    log ("Self-test: settling after a stall");
+    testSettleAfterStall (c);
     log (c.failures == 0 ? "PASS" : "FAIL " + juce::String (c.failures) + " checks failed");
     return c.failures == 0 ? 0 : 1;
 }

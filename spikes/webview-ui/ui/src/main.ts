@@ -8,7 +8,7 @@ import { type Bounds, type Camera, initialCamera, pan, rulerHeight, xToTime, zoo
 import { generateArrangement, packClips } from './clips';
 import { decodeFrame, decodeHostInfo, type Frame, type HostInfo } from './protocol';
 import { Canvas2DRenderer, type Renderer, WebGL2Renderer } from './renderers';
-import { buildBackground, buildForeground, meterStripWidth, RectList } from './scene';
+import { buildBackground, buildForeground, extrapolatePlayhead, meterStripWidth, RectList } from './scene';
 import { SimulatedHost } from './simulated';
 import { PhaseRecorder, RollingWindow } from './stats';
 
@@ -30,6 +30,7 @@ const buttons = {
   transport: el<HTMLButtonElement>('transport'),
   stress: el<HTMLButtonElement>('stress'),
   dirty: el<HTMLButtonElement>('dirty'),
+  smooth: el<HTMLButtonElement>('smooth'),
 };
 
 const errors: string[] = [];
@@ -60,6 +61,7 @@ class App implements BenchTarget {
   private pulling = false;
   private extraMeters = 0;
   private reupload = false;
+  private smoothPlayhead = true;
   private recorder: PhaseRecorder | undefined;
   private benchmarking = false;
   /** False once WebGL2 has failed here, even if the capability check said it exists. */
@@ -180,7 +182,7 @@ class App implements BenchTarget {
 
     const f = this.frame;
     const engine = {
-      audibleSec: f?.audibleSec ?? 0,
+      audibleSec: f === undefined ? 0 : this.smoothPlayhead ? extrapolatePlayhead(f, timestamp - this.lastDataAt) : f.audibleSec,
       loopStartSec: f?.loopStartSec ?? 0,
       loopEndSec: f?.loopEndSec ?? 0,
       levelsDb: f?.levelsDb ?? ([-100, -100] as const),
@@ -276,6 +278,10 @@ class App implements BenchTarget {
     buttons.renderer.onclick = () => this.switchRenderer(this.renderer.name === 'webgl2' ? 'canvas2d' : 'webgl2');
     buttons.transport.onclick = () => void this.setTransport(this.transport === 'push' ? 'pull' : 'push');
     buttons.stress.onclick = () => void this.setExtraMeters(this.extraMeters === 0 ? 256 : this.extraMeters === 256 ? 2048 : 0);
+    buttons.smooth.onclick = () => {
+      this.smoothPlayhead = !this.smoothPlayhead;
+      buttons.smooth.textContent = `Playhead: ${this.smoothPlayhead ? 'smoothed' : 'raw'}`;
+    };
     buttons.dirty.onclick = () => {
       this.reupload = !this.reupload;
       buttons.dirty.textContent = `Re-upload clips: ${this.reupload ? 'on' : 'off'}`;

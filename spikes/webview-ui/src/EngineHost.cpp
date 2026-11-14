@@ -13,8 +13,11 @@ constexpr double settleQuietMs = 300.0;
 /** ...and once the engine's first MIDI device scan has reported, or this long has passed
     (a machine with no MIDI devices may never report one)... */
 constexpr double firstDeviceScanMaxMs = 1500.0;
-/** ...or, if the context never goes quiet, after this long, reported as timed out. */
+/** ...or, if the context never goes quiet, after this long, reported as timed out, but
+    never before ticks have watched for this long, so a stalled message thread gets the
+    chance to deliver what queued up during the stall. */
 constexpr double settleMaxMs = 3000.0;
+constexpr double settleObserveMs = 1000.0;
 /** A transport stopped this long while the user wants it playing is resumed (finding 10). */
 constexpr double resumeAfterMs = 150.0;
 
@@ -251,7 +254,13 @@ void EngineHost::tick()
             quietSince = ready ? now : -1.0;
 
         const bool quiet = ready && now - quietSince >= settleQuietMs;
-        const bool tooLong = now - settleStart >= settleMaxMs;
+
+        // The time-out also counts only once ticks have run for a while: on both CI
+        // runners opening the window held the message thread past it, and the first
+        // tick "timed out" with a device change still queued behind it.
+        if (firstTick < 0.0)
+            firstTick = now;
+        const bool tooLong = now - settleStart >= settleMaxMs && now - firstTick >= settleObserveMs;
 
         if (quiet || tooLong)
         {

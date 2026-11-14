@@ -52,6 +52,24 @@ export class RectList {
   }
 }
 
+/**
+ * Where to draw the playhead `ageMs` after an engine frame said `audibleSec`. On the macOS
+ * CI runner about a quarter of drawn frames had no new engine frame, so drawing the last
+ * value makes the playhead stop and jump. While playing, move it on by the time since,
+ * at most `maxAgeMs` so a stalled stream does not run away, wrapping at the loop end.
+ */
+export function extrapolatePlayhead(
+  frame: { audibleSec: number; playing: boolean; loopStartSec: number; loopEndSec: number },
+  ageMs: number,
+  maxAgeMs = 100,
+): number {
+  if (!frame.playing || !(ageMs > 0)) return frame.audibleSec;
+  const ahead = frame.audibleSec + Math.min(ageMs, maxAgeMs) / 1000;
+  const span = frame.loopEndSec - frame.loopStartSec;
+  if (span <= 0 || ahead < frame.loopEndSec || frame.audibleSec >= frame.loopEndSec) return ahead;
+  return frame.loopStartSec + ((ahead - frame.loopStartSec) % span);
+}
+
 /** Picks a grid step in seconds so lines are at least `minPx` apart: 1, 2 or 5 times a power of ten. */
 export function gridStep(secPerPx: number, minPx = 80): number {
   const target = secPerPx * minPx;

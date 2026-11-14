@@ -23,8 +23,21 @@ juce::String usage()
            "    --benchmark [full|quick]   Run the benchmark as soon as the page loads (default full)\n"
            "    --exit-after-benchmark     Quit when the report is saved: exit code 0 if it reported no errors\n"
            "    --ui-dir <folder>          Serve the page from here (default: ui/dist in the source tree)\n"
-           "    --report-dir <folder>      Write reports and the log here (default: Documents/CollabGod/webview-spike)\n"
+           "    --report-dir <folder>      Write reports and the log here (default: Documents/CollabGod/webview-spike;\n"
+           "                               on macOS ~/Library/Logs/CollabGod/webview-spike)\n"
            "  webview_spike selftest [--contract-dir <folder>]\n";
+}
+
+/** Documents/CollabGod/webview-spike, except on macOS: there Documents is behind a
+    privacy prompt, so ~/Library/Logs/CollabGod/webview-spike (Console.app shows it). */
+juce::File defaultReportDir()
+{
+   #if JUCE_MAC
+    const auto base = juce::File ("~/Library/Logs");
+   #else
+    const auto base = juce::File::getSpecialLocation (juce::File::userDocumentsDirectory);
+   #endif
+    return base.getChildFile ("CollabGod").getChildFile ("webview-spike");
 }
 
 juce::String valueAfter (const juce::StringArray& args, const juce::String& flag)
@@ -93,9 +106,7 @@ public:
 
         spike::Settings settings;
         settings.uiDir = folderArg (unquoted, "--ui-dir", juce::File (WEBVIEW_SPIKE_UI_DIR));
-        settings.reportDir = folderArg (unquoted, "--report-dir",
-                                        juce::File::getSpecialLocation (juce::File::userDocumentsDirectory)
-                                            .getChildFile ("CollabGod").getChildFile ("webview-spike"));
+        settings.reportDir = folderArg (unquoted, "--report-dir", defaultReportDir());
         settings.emitHz = juce::jlimit (0, 1000, valueAfter (unquoted, "--emit-hz").getIntValue());
         settings.exitAfterBenchmark = unquoted.contains ("--exit-after-benchmark");
 

@@ -121,6 +121,7 @@ private:
     // Settling (finding 8)
     double settleStart = 0.0, lastContextChange = 0.0, lastDeviceChange = 0.0;
     double quietSince = -1.0;   // first tick since the last change at which we were ready, or -1
+    double firstTick = -1.0;    // when tick() first ran, or -1
     bool settled = false;
     SettleInfo settleInfo;
     int contextRebuilds = 0;

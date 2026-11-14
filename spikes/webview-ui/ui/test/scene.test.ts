@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { type Bounds, initialCamera } from '../src/camera';
 import { floatsPerRect } from '../src/clips';
-import { buildBackground, buildForeground, gridStep, meterStripWidth, RectList } from '../src/scene';
+import { buildBackground, buildForeground, extrapolatePlayhead, gridStep, meterStripWidth, RectList } from '../src/scene';
 
 const bounds: Bounds = { lengthSec: 400, tracks: 128, viewWidth: 1200, viewHeight: 800 };
 const engine = {
@@ -68,5 +68,27 @@ describe('scene', () => {
     buildForeground(before, initialCamera(bounds), bounds, engine);
     buildForeground(list, initialCamera(bounds), bounds, { ...engine, extraLevelsDb: Array.from({ length: 256 }, () => -10) });
     expect(list.count - before.count).toBe(256);
+  });
+});
+
+describe('extrapolatePlayhead', () => {
+  const frame = { audibleSec: 3, playing: true, loopStartSec: 0, loopEndSec: 8 };
+
+  it('moves on by the time since the frame while playing', () => {
+    expect(extrapolatePlayhead(frame, 16)).toBeCloseTo(3.016);
+  });
+
+  it('stays put when stopped or when the frame is new', () => {
+    expect(extrapolatePlayhead({ ...frame, playing: false }, 50)).toBe(3);
+    expect(extrapolatePlayhead(frame, 0)).toBe(3);
+    expect(extrapolatePlayhead(frame, Number.NaN)).toBe(3);
+  });
+
+  it('goes no further than the cap when frames stop arriving', () => {
+    expect(extrapolatePlayhead(frame, 5000)).toBeCloseTo(3.1);
+  });
+
+  it('wraps at the loop end', () => {
+    expect(extrapolatePlayhead({ ...frame, audibleSec: 7.99 }, 30)).toBeCloseTo(0.02);
   });
 });
