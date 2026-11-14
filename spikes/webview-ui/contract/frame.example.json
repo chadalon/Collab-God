@@ -1,0 +1,15 @@
+{
+  "v": 1,
+  "seq": 4211,
+  "hostTimeMs": 70183.25,
+  "playing": true,
+  "positionSec": 3.2104,
+  "audibleSec": 3.1987,
+  "loopStartSec": 0,
+  "loopEndSec": 8,
+  "levelsDb": [-14.2, -18.7],
+  "extraLevelsDb": [],
+  "unexpectedStops": 0,
+  "contextRebuilds": 1,
+  "xruns": 0
+}

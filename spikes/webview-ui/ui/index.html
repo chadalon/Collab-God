@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CollabGod web view spike</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <canvas id="timeline"></canvas>
+    <div id="hud">
+      <div id="controls">
+        <button id="play" type="button">Play</button>
+        <button id="bench" type="button">Run benchmark</button>
+        <button id="renderer" type="button">Renderer: WebGL2</button>
+        <button id="transport" type="button">Data: push</button>
+        <button id="stress" type="button">Extra meters: 0</button>
+        <button id="dirty" type="button">Re-upload clips: off</button>
+      </div>
+      <pre id="stats">Starting…</pre>
+      <pre id="result" hidden></pre>
+    </div>
+    <script type="module" src="app.js"></script>
+  </body>
+</html>

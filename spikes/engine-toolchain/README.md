@@ -66,7 +66,7 @@ cmake -S . -B build -DFETCHCONTENT_SOURCE_DIR_JUCE=/path/to/JUCE -DFETCHCONTENT_
 
 - **The compiler is killed partway through, or the machine stalls.** Some Tracktion Engine files need well over 1 GB of memory each to compile. Lower the parallelism: `cmake --build build --config Release --parallel 2`.
 - **`play` says no output device is open.** Check that an output device is connected and enabled in the system sound settings. The spike uses the system default and has no device chooser; that is issue #27.
-- **macOS, Xcode 15 or older: `no matching constructor for initialization of 'ExportableUpdate'`, or `no matching function for call to 'construct_at'` for `ChannelMap::Entry`.** Apple clang 15 lacks C++20 parenthesised aggregate initialisation, which Tracktion Engine uses. `CMakeLists.txt` patches the two places in the downloaded source on Apple (finding 11); re-run the configure step if you see it. It is skipped when `FETCHCONTENT_SOURCE_DIR_TRACKTION` points at your own checkout; patch that yourself. It goes away once Xcode 16 is required or Tracktion fixes it.
+- **macOS, Xcode 15 or older: `no matching constructor for initialization of 'ExportableUpdate'`, or `no matching function for call to 'construct_at'` for `ChannelMap::Entry`.** Apple clang 15 lacks C++20 parenthesised aggregate initialisation, which Tracktion Engine uses. `cmake/EngineDependencies.cmake` patches the two places in the downloaded source on Apple (finding 11); re-run the configure step if you see it. It is skipped when `FETCHCONTENT_SOURCE_DIR_TRACKTION` points at your own checkout; patch that yourself. It goes away once Xcode 16 is required or Tracktion fixes it.
 - **macOS asks for microphone access.** It may, because the default device is opened with its inputs. Declining should leave output working; please note in the PR if it does not.
 - **Linux.** Not a target platform, but the spike builds there too; it is how it was developed. Install the JUCE Linux packages first: on Ubuntu, `libasound2-dev libfreetype-dev libfontconfig1-dev libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxcomposite-dev libxext-dev libxi-dev libxrender-dev libgl-dev`.
 
@@ -79,7 +79,7 @@ cmake -S . -B build -DFETCHCONTENT_SOURCE_DIR_JUCE=/path/to/JUCE -DFETCHCONTENT_
 
 JUCE is the exact commit Tracktion Engine's own `modules/juce` submodule points at, so we build the pair Tracktion tests together. When Tracktion Engine moves, JUCE moves to its new submodule commit in the same change; `git ls-tree <tracktion-commit> modules/juce` prints it.
 
-How they are fetched, and why, is [ADR-0009](../../docs/adr/0009-cpp-dependencies.md).
+How they are fetched, and why, is [ADR-0009](../../docs/adr/0009-cpp-dependencies.md). The pins, the fetch and the Apple clang 15 patch are in `cmake/EngineDependencies.cmake`, which `spikes/webview-ui` (#8) includes too, so both spikes build the same pair.
 
 ## Findings
 
