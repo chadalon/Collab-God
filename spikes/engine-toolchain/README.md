@@ -90,6 +90,7 @@ How they are fetched, and why, is [ADR-0007](../../docs/adr/0007-cpp-dependencie
 7. **Build times.** About 3 minutes cold on the Windows runner and 6.5 on the macOS runner, plus a little over a minute of configure and download on each; about 5 minutes on the 2-core Linux machine. The table is below.
 8. **Play is lost if it comes before the engine settles.** On Chad's Windows machine (Windows Audio, Focusrite USB, 44.1 kHz, 441 samples), pressing play straight after opening the device did nothing: the transport stayed stopped while the tone kept sounding, because Tracktion runs plugins while stopped by default. The log showed why: the engine rebuilt the edit's playback context about 0.24 s after start, after the play request, and the rebuild dropped it. Waiting until that rebuild has happened, here a fixed 1 s, made playback work. A simulated sound card on Linux did not reproduce it, so this depends on a real device. For the app: do not start playback, or anything that assumes a running transport, until the device and playback context have settled. Listen for `TransportControl::Listener::playbackContextChanged` instead of using a fixed delay.
 9. **Parameter changes are applied in steps.** The tone's 5 ms fade-out came out as three steps instead of a ramp, with one jump about 4.5 times the steepest slope of the tone itself. That is the click heard where the tone hands over to the file. The file itself starts at zero and does not click. The Tone Generator applies its level once per processing chunk, with no smoothing between. For the app: anything the user or the other person moves live (volume, pan, plugin parameters, PLG-5) needs smoothing on the audio thread, or it will click the same way.
+10. **The transport stopped by itself partway through a real sample.** With a 6 s sample from Chad's library, playback on Windows stopped at edit position 2.96–2.98 s on every run, with no context rebuild before it; pressing play again finished it. A generated 6 s file played through the simulated device at full speed and at real-time pace did not stop, so the trigger is probably something in the file. Followed up in #101. On one run the dropout counter climbed to 12 with CPU at 0.3%, on others it stayed at 1 or 2, and no crackle was heard; device and buffer choice is #27.
 
 ### CI build times
 
@@ -108,7 +109,7 @@ Nothing is cached yet, so every CI run is a cold build. If the times become a pr
 
 - [x] Windows (Chad, 2026-11-13): builds, and after the play-timing fix `play` runs to the end. Output: Windows Audio, Focusrite USB, 44.1 kHz, 441 samples per buffer, under 1% CPU. Heard: the tone, then the test tone, with a click at the change (finding 9). The device's dropout counter read 1 from the first status line on every run. The first runs also had a crackle a few seconds in; whether those are the same thing is not known.
 - [x] Windows: `ctest --test-dir build -C Release --output-on-failure` passes both tests (render 0.63 s, live 0.69 s).
-- [ ] Windows: `play` with a real sample from the library.
+- [x] Windows: `play` with a real sample from the library. It plays, but the transport stops by itself about 2 s into the sample and the spike has to press play again (finding 10, #101).
 - [ ] Mac: build from a clean checkout with the steps above, note the time, run `ctest`, and run `play` and listen.
 
 ## Not covered
