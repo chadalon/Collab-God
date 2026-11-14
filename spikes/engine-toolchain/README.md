@@ -81,13 +81,15 @@ How they are fetched, and why, is [ADR-0007](../../docs/adr/0007-cpp-dependencie
 
 ## Findings
 
-1. **It builds and plays through Tracktion Engine.** On Linux in a cloud session the offline render passes: the tone at -12.0 dBFS in the first second, the file at -12.0 dBFS in the second, and the automated tone 72 dB down once the file starts. The same check passes on GitHub's Windows and macOS runners, below. Nobody has heard the `play` command yet; see "What is left".
+1. **It builds and plays through Tracktion Engine.** On Linux in a cloud session the offline render passes: the tone at -12.0 dBFS in the first second, the file at -12.0 dBFS in the second, and the automated tone 72 dB down once the file starts. The same check passes on GitHub's Windows and macOS runners, below. Chad has heard `play` on Windows (finding 8 and "What is left").
 2. **The current pair is JUCE 9, not JUCE 8.** ADR-0002 says JUCE 8. Tracktion Engine's last tag, v3.2.0 (May 2025), is on JUCE 8.0.x and is 18 months old. Its `develop` branch is at 3.5.0 on JUCE 9.0.5, still dual-licensed AGPLv3, and gets fixes weekly. The spike uses `develop` pinned to a commit. Chad chose JUCE 9 on 2026-11-13, and ADR-0002 and the root README now say so.
 3. **Tracktion Engine has made no tagged release since v3.2.0.** Pinning to a commit is the only way to use current code, which rules out anything that needs a tag. See ADR-0007.
 4. **FetchContent cannot shallow-fetch a commit.** `GIT_SHALLOW` with a commit hash fails unless the commit happens to be a branch tip (`fatal: reference is not a tree`). Without `GIT_SHALLOW`, FetchContent clones all history: 1.7 GB for Tracktion Engine. The spike fetches each pinned commit alone with `git fetch --depth 1` (`cmake/ShallowFetchCommit.cmake`): 112 MB for Tracktion Engine and 130 MB for JUCE once checked out, and configure including both downloads took about 40 seconds on a cloud machine. Tarball URLs would be smaller still, but GitHub does not promise their checksums stay the same.
 5. **Two Tracktion Engine API traps.** The Tone Generator is not registered by default and needs `createBuiltInType<ToneGeneratorPlugin>()`. Assigning a plugin's CachedValues (`tone->frequency = 440`) changes the saved state but not what plays: the first render came out as 220 Hz at full scale, the plugin's defaults. Values must be set through the automatable parameters. Worth knowing for the projection spike: the engine's state tree and what the audio thread uses are not the same thing.
 6. **Memory, not CPU, limits a parallel build.** On a 2-core, 7 GB machine, four parallel jobs got the compiler killed; two jobs were fine. JUCE's link-time optimisation is off: with it, every rebuild of a one-line change took about 4 minutes to link; without it, 13 seconds.
 7. **Build times.** About 3 minutes cold on the Windows runner and 6.5 on the macOS runner, plus a little over a minute of configure and download on each; about 5 minutes on the 2-core Linux machine. The table is below.
+8. **Play is lost if it comes before the engine settles.** On Chad's Windows machine (Windows Audio, Focusrite USB, 44.1 kHz, 441 samples), pressing play straight after opening the device did nothing: the transport stayed stopped while the tone kept sounding, because Tracktion runs plugins while stopped by default. The log showed why: the engine rebuilt the edit's playback context about 0.24 s after start, after the play request, and the rebuild dropped it. Waiting until that rebuild has happened, here a fixed 1 s, made playback work. A simulated sound card on Linux did not reproduce it, so this depends on a real device. For the app: do not start playback, or anything that assumes a running transport, until the device and playback context have settled. Listen for `TransportControl::Listener::playbackContextChanged` instead of using a fixed delay.
+9. **Parameter changes are applied in steps.** The tone's 5 ms fade-out came out as three steps instead of a ramp, with one jump about 4.5 times the steepest slope of the tone itself. That is the click heard where the tone hands over to the file. The file itself starts at zero and does not click. The Tone Generator applies its level once per processing chunk, with no smoothing between. For the app: anything the user or the other person moves live (volume, pan, plugin parameters, PLG-5) needs smoothing on the audio thread, or it will click the same way.
 
 ### CI build times
 
@@ -104,10 +106,9 @@ Nothing is cached yet, so every CI run is a cold build. If the times become a pr
 
 ## What is left (needs the maintainers' machines)
 
-- [ ] Build from a clean checkout on Chad's Windows machine with the steps above, and note the time and any step that differed.
-- [ ] Same on a Mac.
-- [ ] Run `engine_spike play` on both and listen: a clean 440 Hz tone for one second, then the 660 Hz test tone, with no click at the change and no crackle. Then `play` with a real sample from your library.
-- [ ] Note which audio device type the spike opened on each (it prints it): WASAPI or ASIO on Windows, Core Audio on macOS.
+- [x] Windows (Chad, 2026-11-13): builds, and after the play-timing fix `play` runs to the end. Output: Windows Audio, Focusrite USB, 44.1 kHz, 441 samples per buffer, under 1% CPU. Heard: the tone, then the test tone, with a click at the change (finding 9). The device's dropout counter read 1 from the first status line on every run. The first runs also had a crackle a few seconds in; whether those are the same thing is not known.
+- [ ] Windows: `ctest --test-dir build -C Release --output-on-failure`, and `play` with a real sample from the library.
+- [ ] Mac: build from a clean checkout with the steps above, note the time, run `ctest`, and run `play` and listen.
 
 ## Not covered
 
