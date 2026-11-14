@@ -290,22 +290,31 @@ describe('progress', () => {
   it('reports waiting, then transferring at a bounded rate, then verifying and done, never going backwards', async () => {
     world = await setup();
     const { path, id, data } = await world.sample('strings.wav', 8 * 1024 * 1024);
-    // A small window keeps the transfer slow enough on one machine to see many updates.
+    // Two chunks in flight, each held 1 ms on arrival: at least 512 round trips,
+    // so at least half a second however fast the machine is. On a fast CI
+    // runner an unpaced transfer finished in 150 ms with only 3 updates.
     serve(world.sender, { [id]: path }, { chunkBytes: 8 * 1024, windowBytes: 16 * 1024 });
+    const slow: RelayClient = Object.create(world.receiver);
+    slow.onBinary = (listener) => world.receiver.onBinary((from, payload) => setTimeout(() => listener(from, payload), 1));
 
     const events: (ProgressEvent & { at: number })[] = [];
-    await fetchSample(world.receiver, {
+    const started = performance.now();
+    await fetchSample(slow, {
       id,
       from: 'p1',
       dir: world.project,
       progressIntervalMs: 50,
       onProgress: (event) => events.push({ ...event, at: performance.now() }),
     });
+    const elapsed = performance.now() - started;
+    expect(elapsed).toBeGreaterThan(500);
 
     const states = events.map((event) => event.state).filter((state, i, all) => state !== all[i - 1]);
     expect(states).toEqual(['waiting', 'transferring', 'verifying', 'done']);
     const transferring = events.filter((event) => event.state === 'transferring');
-    expect(transferring.length).toBeGreaterThan(3);
+    // About one update per 50 ms of transfer, and never more.
+    expect(transferring.length).toBeGreaterThan(5);
+    expect(transferring.length).toBeLessThanOrEqual(Math.ceil(elapsed / 50) + 1);
     for (let i = 1; i < transferring.length; i += 1) {
       const [before, after] = [transferring[i - 1], transferring[i]];
       if (before === undefined || after === undefined) continue;
