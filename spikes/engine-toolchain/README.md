@@ -107,7 +107,8 @@ Nothing is cached yet, so every CI run is a cold build. If the times become a pr
 ## What is left (needs the maintainers' machines)
 
 - [x] Windows (Chad, 2026-11-13): builds, and after the play-timing fix `play` runs to the end. Output: Windows Audio, Focusrite USB, 44.1 kHz, 441 samples per buffer, under 1% CPU. Heard: the tone, then the test tone, with a click at the change (finding 9). The device's dropout counter read 1 from the first status line on every run. The first runs also had a crackle a few seconds in; whether those are the same thing is not known.
-- [ ] Windows: `ctest --test-dir build -C Release --output-on-failure`, and `play` with a real sample from the library.
+- [x] Windows: `ctest --test-dir build -C Release --output-on-failure` passes both tests (render 0.63 s, live 0.69 s).
+- [ ] Windows: `play` with a real sample from the library.
 - [ ] Mac: build from a clean checkout with the steps above, note the time, run `ctest`, and run `play` and listen.
 
 ## Not covered
