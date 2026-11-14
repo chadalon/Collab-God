@@ -115,11 +115,74 @@ jobs:
             echo "Runner: $(uname -a), $(nproc 2>/dev/null || sysctl -n hw.ncpu) cores"
           } >> "$GITHUB_STEP_SUMMARY"
 
+  webview-ui-spike:
+    name: Web view UI spike (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
+    defaults:
+      run:
+        working-directory: spikes/webview-ui
+        shell: bash
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: spikes/webview-ui/ui/package-lock.json
+      - name: "Page: install, typecheck, test and build"
+        working-directory: spikes/webview-ui/ui
+        run: |
+          npm ci
+          npm run typecheck
+          npm test
+          npm run build
+      - name: Configure (downloads JUCE, Tracktion Engine and, on Windows, the WebView2 SDK)
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+      - name: Build
+        run: cmake --build build --config Release --parallel 4
+      - name: Self-test (bridge contract, page serving, engine settling, seek, MIDI-change resume)
+        run: ctest --test-dir build -C Release --output-on-failure --verbose
+      # Opens a window on the runner and runs a short benchmark. Runners have no GPU and
+      # may not show a web view at all, so this step is informational: it records what the
+      # runner's web view supports, and its result does not gate the build.
+      - name: End-to-end quick benchmark (informational)
+        continue-on-error: true
+        timeout-minutes: 5
+        run: |
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            app="build/webview_spike_artefacts/Release/CollabGod WebView Spike.exe"
+          else
+            app="build/webview_spike_artefacts/Release/CollabGod WebView Spike.app/Contents/MacOS/CollabGod WebView Spike"
+          fi
+          "$app" --simulated-audio --benchmark quick --exit-after-benchmark --report-dir "$PWD/end-to-end"
+      - name: Record the end-to-end report
+        if: always()
+        run: |
+          {
+            echo "### Web view UI spike on ${{ matrix.os }}"
+            echo ""
+            if ls end-to-end/report-*.json >/dev/null 2>&1; then
+              echo '```json'
+              cat end-to-end/report-*.json
+              echo '```'
+              cat end-to-end/report-*.json >&2  # into the log too, where the API can read it
+            else
+              echo "No end-to-end report. Log:"
+              echo '```'
+              cat end-to-end/webview-spike.log 2>/dev/null || echo "(no log)"
+              echo '```'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
   # One stable check name for branch protection to require, however many jobs exist above.
   passed:
     name: CI passed
     if: always()
-    needs: [session-model-spike, relay-spike, sample-index-spike, engine-toolchain-spike]
+    needs: [session-model-spike, relay-spike, sample-index-spike, engine-toolchain-spike, webview-ui-spike]
     runs-on: ubuntu-latest
     steps:
       - name: Fail unless every job succeeded
@@ -128,3 +191,4 @@ jobs:
           test "${{ needs.relay-spike.result }}" = "success"
           test "${{ needs.sample-index-spike.result }}" = "success"
           test "${{ needs.engine-toolchain-spike.result }}" = "success"
+          test "${{ needs.webview-ui-spike.result }}" = "success"

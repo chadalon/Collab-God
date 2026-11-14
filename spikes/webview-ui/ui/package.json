@@ -1,0 +1,21 @@
+{
+  "name": "@collabgod/webview-ui-spike",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Phase 0 spike: a GPU-drawn timeline in JUCE's web view, fed by the C++ engine",
+  "license": "GPL-3.0-or-later",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2",
+    "typescript": "^7.0.2",
+    "vitest": "^5.1.0"
+  }
+}

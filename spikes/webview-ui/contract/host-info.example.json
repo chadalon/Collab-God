@@ -1,0 +1,21 @@
+{
+  "v": 1,
+  "platform": "Windows",
+  "webView": "WebView2",
+  "juceVersion": "JUCE v9.0.5",
+  "audio": {
+    "simulated": false,
+    "type": "Windows Audio",
+    "name": "Focusrite USB",
+    "sampleRate": 44100,
+    "blockSize": 441
+  },
+  "settle": {
+    "ms": 1240.5,
+    "contextChanges": 2,
+    "deviceChanges": 1,
+    "timedOut": false
+  },
+  "emit": "vblank",
+  "autorun": "none"
+}
