@@ -76,11 +76,37 @@ jobs:
       - run: npm run typecheck
       - run: npm test
 
+  sample-transfer-spike:
+    name: Sample transfer spike (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    defaults:
+      run:
+        working-directory: spikes/sample-transfer
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            spikes/relay/package-lock.json
+            spikes/sample-transfer/package-lock.json
+      # This spike imports the relay spike, which needs its own dependencies.
+      - run: npm ci
+        working-directory: spikes/relay
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+
   # One stable check name for branch protection to require, however many jobs exist above.
   passed:
     name: CI passed
     if: always()
-    needs: [session-model-spike, relay-spike, sample-index-spike]
+    needs: [session-model-spike, relay-spike, sample-index-spike, sample-transfer-spike]
     runs-on: ubuntu-latest
     steps:
       - name: Fail unless every job succeeded
@@ -88,3 +114,4 @@ jobs:
           test "${{ needs.session-model-spike.result }}" = "success"
           test "${{ needs.relay-spike.result }}" = "success"
           test "${{ needs.sample-index-spike.result }}" = "success"
+          test "${{ needs.sample-transfer-spike.result }}" = "success"

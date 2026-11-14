@@ -11,7 +11,7 @@ Node 22 or newer.
 ```sh
 cd spikes/relay
 npm ci
-npm test              # 19 tests over real sockets on this machine, about 2 seconds
+npm test              # 23 tests over real sockets on this machine, about 2 seconds
 npm run typecheck
 FC_SCALE=10 npm test  # the convergence test with 10 times as many random cases
 ```
@@ -25,7 +25,7 @@ FC_SCALE=10 npm test  # the convergence test with 10 times as many random cases
 | `src/client.ts` | A small client: create or join, send operations, receive them in order, ping, TLS details |
 | `src/replica-link.ts` | Runs a session-model `Replica` over a client connection |
 | `src/cli.ts` | `serve`, and the `host` and `join` commands for the test between two locations |
-| `test/relay.test.ts` | Lobbies, codes, the cap of two, ordering, catch-up, bad input |
+| `test/relay.test.ts` | Lobbies, codes, the cap of two, ordering, catch-up, direct messages and binary frames, bad input |
 | `test/convergence.test.ts` | Two `Replica`s editing at once over real sockets, then a late joiner, all ending in the state of the log |
 | `test/tls.test.ts` | The same over TLS with a throwaway certificate, and refusal of an untrusted one |
 
@@ -39,10 +39,16 @@ One WebSocket per person, JSON text frames.
 | client → relay | `{type: "join", code}` | Join by invite code. Case, spaces and dashes are ignored |
 | client → relay | `{type: "op", opId, op}` | Order this operation. `op` is any JSON value |
 | client → relay | `{type: "ping", t}` | Answered at once with `pong`, outside the log |
+| client → relay | `{type: "direct", to, data}` | Pass `data` to one other member, outside the log. Nothing is stored |
+| client → relay | binary frame: id length, `to` id, payload | Pass bytes to one other member, outside the log. Nothing is stored |
 | relay → client | `{type: "welcome", code, clientId, peers, log}` | You are in. `log` is everything ordered so far |
 | relay → client | `{type: "op", seq, opId, clientId, op}` | The next operation, sent to everyone including its sender |
 | relay → client | `{type: "peer-joined" \| "peer-left", clientId}` | The other person arrived or left |
-| relay → client | `{type: "error", code, message}` | `bad-message`, `unknown-room`, `room-full`, `already-joined`, `not-joined` or `duplicate-op` |
+| relay → client | `{type: "direct", from, data}` | A direct message from another member |
+| relay → client | binary frame: id length, `from` id, payload | Bytes from another member |
+| relay → client | `{type: "error", code, message}` | `bad-message`, `unknown-room`, `room-full`, `already-joined`, `not-joined`, `duplicate-op`, `unknown-peer` or `peer-busy` |
+
+Direct messages and binary frames were added for the sample-transfer spike ([issue #16](https://github.com/chadalon/collabgod/issues/16), [`../sample-transfer`](../sample-transfer)). They carry traffic that is not an edit: the relay stamps the sender in place of the recipient, the same as for operations, and forwards the frame without reading or keeping it. A binary frame starts with one byte giving the length of a client id, then that id in ASCII, then the payload. If the relay already holds more than 16 MiB (`maxBufferedBytes`) unsent for the recipient, it drops the binary frame and answers the sender `peer-busy`, so a sender that ignores flow control cannot use up the relay's memory.
 
 Invite codes are six characters from an alphabet without 0, O, 1, I, L or U, shown as `K7M-QX4`. The relay assigns each connection an id (`p1`, `p2`, ...) and stamps it on that connection's operations, so nobody can send an operation as someone else.
 

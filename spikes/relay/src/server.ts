@@ -9,6 +9,8 @@ import { type Envelope, Relay } from '../../session-model/src/relay';
 import {
   CODE_ALPHABET,
   CODE_LENGTH,
+  decodeBinaryFrame,
+  encodeBinaryFrame,
   type ErrorCode,
   normaliseCode,
   parseClientMessage,
@@ -29,6 +31,12 @@ export interface RelayServerOptions {
   readonly heartbeatMs?: number;
   /** Largest frame accepted from a client, in bytes. Default 1 MiB. */
   readonly maxPayload?: number;
+  /**
+   * Most unsent bytes the relay will hold for one connection before it drops
+   * binary frames meant for it and answers the sender `peer-busy`. Bounds the
+   * relay's memory if a sender ignores flow control. Default 16 MiB.
+   */
+  readonly maxBufferedBytes?: number;
   /** Where to write one-line event notes. Never receives operation contents. Default: nowhere. */
   readonly log?: (line: string) => void;
 }
@@ -72,6 +80,7 @@ class Room {
 export async function startRelayServer(options: RelayServerOptions = {}): Promise<RelayServer> {
   const emptyRoomTtlMs = options.emptyRoomTtlMs ?? 10 * 60_000;
   const heartbeatMs = options.heartbeatMs ?? 30_000;
+  const maxBufferedBytes = options.maxBufferedBytes ?? 16 * 1024 * 1024;
   const log = options.log ?? (() => {});
 
   const rooms = new Map<string, Room>();
@@ -133,6 +142,24 @@ export async function startRelayServer(options: RelayServerOptions = {}): Promis
     }
   };
 
+  /**
+   * Pass a binary frame to the member it names, with the sender stamped in place
+   * of the recipient. Not stored, not ordered. `ws` may hand over a Buffer[] or
+   * ArrayBuffer for other binary types; this server uses the default, Buffer.
+   */
+  const forwardBinary = (socket: WebSocket, data: Buffer): void => {
+    const member = members.get(socket);
+    if (member === undefined) return fail(socket, 'not-joined', 'Create or join a lobby before sending data.');
+    const frame = decodeBinaryFrame(data);
+    if (frame === undefined) return fail(socket, 'bad-message', 'Binary frame too short for its client id.');
+    const target = member.room.members.get(frame.peer);
+    if (target === undefined) return fail(socket, 'unknown-peer', `${frame.peer} is not connected.`);
+    if (target.socket.bufferedAmount > maxBufferedBytes) {
+      return fail(socket, 'peer-busy', `More than ${maxBufferedBytes} bytes are waiting to go to ${frame.peer}.`);
+    }
+    if (target.socket.readyState === WebSocket.OPEN) target.socket.send(encodeBinaryFrame(member.clientId, frame.payload));
+  };
+
   wss.on('connection', (socket) => {
     alive.set(socket, true);
     socket.on('pong', () => alive.set(socket, true));
@@ -140,9 +167,13 @@ export async function startRelayServer(options: RelayServerOptions = {}): Promis
     socket.on('error', () => socket.terminate());
 
     socket.on('message', (data, isBinary) => {
-      const message = isBinary ? undefined : parseClientMessage(data.toString());
+      if (isBinary) {
+        forwardBinary(socket, data as Buffer);
+        return;
+      }
+      const message = parseClientMessage(data.toString());
       if (message === undefined) {
-        fail(socket, 'bad-message', 'Expected a JSON text frame: create, join, op or ping.');
+        fail(socket, 'bad-message', 'Expected a JSON text frame: create, join, op, ping or direct.');
         return;
       }
       const member = members.get(socket);
@@ -164,6 +195,13 @@ export async function startRelayServer(options: RelayServerOptions = {}): Promis
           if (room === undefined) return fail(socket, 'unknown-room', 'No lobby has that invite code.');
           if (room.members.size >= ROOM_CAPACITY) return fail(socket, 'room-full', 'Two people are already in that lobby.');
           admit(socket, room);
+          return;
+        }
+        case 'direct': {
+          if (member === undefined) return fail(socket, 'not-joined', 'Create or join a lobby before sending messages.');
+          const target = member.room.members.get(message.to);
+          if (target === undefined) return fail(socket, 'unknown-peer', `${message.to} is not connected.`);
+          send(target.socket, { type: 'direct', from: member.clientId, data: message.data });
           return;
         }
         case 'op': {
