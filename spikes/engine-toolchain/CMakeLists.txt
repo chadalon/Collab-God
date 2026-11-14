@@ -63,29 +63,44 @@ collabgod_declare_pinned(tracktion
 
 FetchContent_MakeAvailable(juce tracktion)
 
-# Apple clang 15 (Xcode 15, macOS 13/14) lacks C++20 parenthesised aggregate
-# initialisation, which tracktion_Archive.cpp relies on. Brace-init is the same
-# thing and builds everywhere. Remove once Tracktion fixes it or we require Xcode 16.
-if(APPLE)
-    set(_archive_cpp "${tracktion_SOURCE_DIR}/modules/tracktion_engine/model/export/tracktion_Archive.cpp")
-    file(READ "${_archive_cpp}" _archive_src)
-    string(REPLACE
-        "ExportableUpdate (f.oldRef, destItem->getProjectItemRef())"
-        "ExportableUpdate { f.oldRef, destItem->getProjectItemRef() }"
-        _archive_src "${_archive_src}")
-    file(WRITE "${_archive_cpp}" "${_archive_src}")
-
-    # Same cause: emplace_back (a, b) on the aggregate ChannelMap::Entry. A
-    # constructor makes it work without parenthesised aggregate init.
-    set(_cmap_h "${tracktion_SOURCE_DIR}/modules/tracktion_engine/utilities/tracktion_ChannelMap.h")
-    file(READ "${_cmap_h}" _cmap_src)
-    if(NOT _cmap_src MATCHES "Entry \\(int s, int d")
-        string(REPLACE
-            "        float gain = 1.0f;\n    };"
-            "        float gain = 1.0f;\n\n        Entry() = default;\n        Entry (int s, int d, float g = 1.0f) : source (s), dest (d), gain (g) {}\n    };"
-            _cmap_src "${_cmap_src}")
-        file(WRITE "${_cmap_h}" "${_cmap_src}")
+# Apple clang 15 (Xcode 15, macOS 13 and 14) lacks C++20 parenthesised aggregate
+# initialisation, which Tracktion Engine uses in two places. The spike patches the
+# downloaded source on Apple (README finding 11). Remove once Tracktion fixes it or
+# we require Xcode 16.
+#
+# A file is written only when its text changes, so reconfiguring does not touch its
+# timestamp and trigger a rebuild. A local checkout given with
+# FETCHCONTENT_SOURCE_DIR_TRACKTION is never patched: it is the developer's own tree.
+function(collabgod_patch_source file old new)
+    file(READ "${file}" text)
+    string(FIND "${text}" "${new}" already)
+    if(NOT already EQUAL -1)
+        return()
     endif()
+    string(FIND "${text}" "${old}" found)
+    if(found EQUAL -1)
+        message(WARNING "Patch for Apple clang 15 no longer matches ${file}; check whether it is still needed")
+        return()
+    endif()
+    string(REPLACE "${old}" "${new}" text "${text}")
+    file(WRITE "${file}" "${text}")
+    message(STATUS "Patched ${file} for Apple clang 15")
+endfunction()
+
+if(APPLE AND NOT FETCHCONTENT_SOURCE_DIR_TRACKTION)
+    set(_te "${tracktion_SOURCE_DIR}/modules/tracktion_engine")
+
+    # ExportableUpdate (a, b): brace-init means the same and builds everywhere.
+    collabgod_patch_source("${_te}/model/export/tracktion_Archive.cpp"
+        "ExportableUpdate (f.oldRef, destItem->getProjectItemRef())"
+        "ExportableUpdate { f.oldRef, destItem->getProjectItemRef() }")
+
+    # emplace_back (a, b) on the aggregate ChannelMap::Entry: give it a constructor.
+    collabgod_patch_source("${_te}/utilities/tracktion_ChannelMap.h"
+        "        float gain = 1.0f;\n    };"
+        "        float gain = 1.0f;\n\n        Entry() = default;\n        Entry (int s, int d, float g = 1.0f) : source (s), dest (d), gain (g) {}\n    };")
+elseif(APPLE)
+    message(STATUS "Using a local Tracktion Engine checkout; not applying the Apple clang 15 patches")
 endif()
 
 add_subdirectory(${tracktion_SOURCE_DIR}/modules ${CMAKE_BINARY_DIR}/tracktion_modules)

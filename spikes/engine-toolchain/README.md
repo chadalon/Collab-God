@@ -66,7 +66,7 @@ cmake -S . -B build -DFETCHCONTENT_SOURCE_DIR_JUCE=/path/to/JUCE -DFETCHCONTENT_
 
 - **The compiler is killed partway through, or the machine stalls.** Some Tracktion Engine files need well over 1 GB of memory each to compile. Lower the parallelism: `cmake --build build --config Release --parallel 2`.
 - **`play` says no output device is open.** Check that an output device is connected and enabled in the system sound settings. The spike uses the system default and has no device chooser; that is issue #27.
-- **macOS, Xcode 15 or older: `no matching constructor for initialization of 'ExportableUpdate'`, or `no matching function for call to 'construct_at'` for `ChannelMap::Entry`.** Apple clang 15 lacks C++20 parenthesised aggregate initialisation, which Tracktion Engine uses. `CMakeLists.txt` patches the two places in the downloaded source on Apple (finding 11); re-run the configure step if you see it. It goes away once Xcode 16 is required or Tracktion fixes it.
+- **macOS, Xcode 15 or older: `no matching constructor for initialization of 'ExportableUpdate'`, or `no matching function for call to 'construct_at'` for `ChannelMap::Entry`.** Apple clang 15 lacks C++20 parenthesised aggregate initialisation, which Tracktion Engine uses. `CMakeLists.txt` patches the two places in the downloaded source on Apple (finding 11); re-run the configure step if you see it. It is skipped when `FETCHCONTENT_SOURCE_DIR_TRACKTION` points at your own checkout; patch that yourself. It goes away once Xcode 16 is required or Tracktion fixes it.
 - **macOS asks for microphone access.** It may, because the default device is opened with its inputs. Declining should leave output working; please note in the PR if it does not.
 - **Linux.** Not a target platform, but the spike builds there too; it is how it was developed. Install the JUCE Linux packages first: on Ubuntu, `libasound2-dev libfreetype-dev libfontconfig1-dev libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxcomposite-dev libxext-dev libxi-dev libxrender-dev libgl-dev`.
 
@@ -114,8 +114,8 @@ Nothing is cached yet, so every CI run is a cold build. If the times become a pr
 - [x] Windows: `ctest --test-dir build -C Release --output-on-failure` passes both tests (render 0.63 s, live 0.69 s).
 - [x] Windows: `play` with a real sample from the library. It plays, but the transport stopped about 2 s into the sample, 4 s after start, and the spike had to press play again; the cause is the MIDI device scan (finding 10, #101). Not yet re-run with the MIDI scan moved before play.
 - [x] Mac (Chad, 2026-11-13, Intel MacBook Pro, macOS 13.7, Apple clang 15): builds with the patches in finding 11 and `--parallel 2`, and `ctest` passed both tests (render and live play) before the MIDI test from finding 10 was merged; not re-run since. `play` runs to the end on CoreAudio Built-in Output, 44.1 kHz, 512 samples per buffer, CPU 1 to 10.6%. Heard: both sounds, with crackling consistently at the very start of the first sound, and at times later in the run; the later crackle did not repeat when tried again. The start-of-tone crackle is not explained: it is before the hand-over that finding 9 covers. The dropout counter read -1 on every line, which looks like "not available" on this device, so it says nothing either way.
-- [ ] Mac: find what causes the crackle at the start of the first sound, and whether the later crackle comes back. Try a larger buffer, and run `play` several times.
-- [ ] Mac: build time from a clean checkout, not recorded.
+- [ ] Mac: the crackle at the start of the first sound. Moved to #101: the likely cause is the engine rebuilding its playback graph while the tone is already sounding, the same family as finding 10.
+- [ ] Mac: `ctest` with all three tests, and a timed cold build. Neither blocks #7.
 
 ## Not covered
 
