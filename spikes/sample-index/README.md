@@ -97,11 +97,20 @@ Keep the index file outside the repository: it holds your folder paths. The inve
    npm run samples -- scan "D:\Samples" "D:\Splice" --index ~/sample-index.json
    ```
 
+   **Windows PowerShell:** it drops the `--` and does not expand `~`, so npm swallows `--index`. Quote the separator and use `$HOME`, or skip npm:
+
+   ```powershell
+   npm run samples '--' scan "D:\Samples" --index "$HOME\sample-index.json"
+   npx tsx src/cli.ts scan "D:\Samples" --index "$HOME\sample-index.json"
+   ```
+
+   The same applies to every `npm run samples -- ...` command below.
+
    Copy the whole output. It prints files, time, read rate, CPU, event loop delay, index size, how many files got an audio identity and why the rest did not, and any errors.
 
 3. Run the same command again straight away and copy its output. Nothing changed, so it should read 0 bytes.
 
-4. Rename one sample, edit the tags of another in any tool, add a new one, and delete one. Run the command a third time. It should hash exactly three files and report one removed.
+4. Rename one sample, edit the tags of another in any tool, add a new one, and delete one. Run the command a third time. It should hash three files (added 2, changed 1) and report two removed: a rename counts as the old name removed and the new name added. The tag edit only shows as changed if your tool really rewrites the file (VLC cannot save tags to WAV files; Mp3tag can). Check that the file's modified time moved.
 
 5. Optional, to compare the two hashes on your disk: after a restart, run once each with `--mode file --fresh --index ~/index-file.json` and `--mode audio --fresh --index ~/index-audio.json`.
 
