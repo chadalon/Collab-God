@@ -16,9 +16,10 @@ import { createHash } from 'node:crypto';
 import { createReadStream } from 'node:fs';
 
 /**
- * A sample's content id: SHA-256 of the file's bytes, as 64 hex characters.
- * A stand-in until issue #15 decides the real identity scheme; this spike only
- * needs something that detects a wrong or damaged file.
+ * A sample's content id: SHA-256 of the file's bytes, as 64 lowercase hex
+ * characters. This is the file hash of ADR-0008 (`fileHash` in
+ * spikes/sample-index). Transfers always use it, never the audio hash, because
+ * the receiver checks the bytes it wrote.
  */
 export type ContentId = string;
 

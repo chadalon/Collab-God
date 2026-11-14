@@ -4,7 +4,9 @@ Phase 0 spike for [issue #16](https://github.com/chadalon/collabgod/issues/16) (
 
 It is throwaway code. It runs over the [relay spike](../relay), which gained two things for it: `direct` messages and binary frames that go to one member and never enter the ordered log.
 
-**Content identity is a stand-in.** A sample is named by the SHA-256 of its file bytes. [Issue #15](https://github.com/chadalon/collabgod/issues/15) decides the real identity scheme (bytes or decoded audio). This spike only needs a hash that catches a wrong or damaged file, and the transfer works the same whichever hash #15 picks, as long as the receiver can check it against the bytes it wrote.
+**A sample is named by its file hash**, the SHA-256 of its bytes in lowercase hex, as [ADR-0008](../../docs/adr/0008-sample-identity.md) (Proposed) has it. That is the same hash [`../sample-index`](../sample-index) computes as `fileHash`. A transfer is always asked for and checked by this hash, never by the audio hash: the receiver can only check the bytes it wrote.
+
+So a member serves a sample only under the file hash of the file it actually sends. A local file that matches a clip only by its audio hash has different bytes; it can play the clip, but it is not a source for that clip's file hash. It could be offered under its own file hash instead, which ADR-0008's consequences also say.
 
 ## Run it
 
@@ -135,6 +137,7 @@ From this cloud session, on one machine: real sockets through a real relay, and 
 
 - **Is 25 ms of added delay during a transfer acceptable?** It is the target for the delay-based window, and the measured cost was 24 to 41 ms. A lower target protects edits more and slows transfers on connections with a jittery baseline. RFC 6817 allows up to 100 ms, which would leave too little of NFR-1's 150 ms.
 - **Should edits and sample data share one connection?** Here they do, and the delay-based window keeps the cost small. A second WebSocket for bulk data would not help by itself: both connections pass through the same home router, and its queue is where the delay comes from. A direct connection between the two machines (the issue's "later optimisation") would take the relay out of the path and halve the distance for people near each other, but would need NAT traversal and a fallback to the relay for when it fails. It is not needed to meet SMP-4.
+- **Should a transfer be offered under the audio hash?** When neither person has a sample's exact file, but one has the same audio in another container or with other metadata (ADR-0008), sending that file would still give the clip its sound. The receiver would then verify against the sender's file hash and match the clip by its audio hash. The protocol allows it unchanged, but the spike does not do it.
 - **Who is asked for a sample in a lobby of more than two?** The spike asks one named member. With more members, the receiver could ask everyone and take the first `have`, or ask several for different ranges. The protocol already allows any member who has the bytes to serve any range.
 
 ## Not covered
