@@ -1,4 +1,4 @@
-# ADR-0007: Fetch C++ dependencies at configure time, pinned to a commit
+# ADR-0009: Fetch C++ dependencies at configure time, pinned to a commit
 
 - **Status:** Proposed
 - **Date:** 2026-11-12
