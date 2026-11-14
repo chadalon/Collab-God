@@ -15,7 +15,7 @@ The spike for issue #15 (`spikes/sample-index`) built both. For uncompressed PCM
 ## Decision
 
 - A sample's **identity** is the SHA-256 of the file's bytes. Clips, the project file and the network refer to samples by this hash.
-- For PCM WAV, AIFF and AIFF-C the indexer also stores an **audio hash**, computed in the same read. A clip whose file hash is missing locally but whose audio hash matches a local file plays from that file automatically: the samples are identical, so the clip sounds identical. It counts as an exact match under the roadmap's rule, not a fuzzy one.
+- For PCM WAV, AIFF and AIFF-C the indexer also stores an **audio hash**, computed in the same read. A clip whose file hash is missing locally but whose audio hash matches a local file plays from that file automatically: the samples are identical, so the clip sounds identical. It counts as an exact match under the roadmap's rule, not a fuzzy one. Chad confirmed this on PR #99.
 - Name-based matches (same name, name without a copy number, same name in another format) are only ever suggestions (SMP-7).
 - Compressed formats get no audio hash in v1.
 

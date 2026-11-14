@@ -125,7 +125,7 @@ Keep the index file outside the repository: it holds your folder paths. The inve
 
 ## Questions for the maintainers
 
-- Should an audio-hash match resolve a clip automatically, as ADR-0008 proposes, or be offered like a near match?
+- Answered on PR #99: an audio-hash match resolves a clip automatically. The audio is identical (same format, channels, sample rate and every sample), so the clip sounds the same; only tags or the container differ.
 - Which folders do you keep samples in, and are any on network drives or cloud-synced folders? Cloud-only files on macOS and OneDrive would be downloaded by a full scan.
 
 ## Not covered
