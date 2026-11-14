@@ -39,8 +39,9 @@ juce::File makeTestFile (const juce::File& folder)
 }
 
 /** Starts the transport at zero and calls `tick` until playback passes the end
-    of the edit or a timeout. Returns false on timeout. */
-bool playToEnd (te::Edit& edit, const std::function<void()>& tick)
+    of the edit, a timeout, or `tick` returns false. Returns true only if it
+    reached the end. */
+bool playToEnd (te::Edit& edit, const std::function<bool()>& tick)
 {
     auto& transport = edit.getTransport();
     edit.dispatchPendingUpdatesSynchronously();
@@ -59,7 +60,11 @@ bool playToEnd (te::Edit& edit, const std::function<void()>& tick)
             return false;
         }
 
-        tick();
+        if (! tick())
+        {
+            transport.stop (false, false);
+            return false;
+        }
     }
 
     transport.stop (false, false);
@@ -181,15 +186,25 @@ int play (juce::File audioFile)
     contextLogger.onChange = [&] { print (now() + "engine rebuilt the playback context"); };
     transport.addListener (&contextLogger);
 
-    // On Windows the transport was stopped as soon as it started. Give the engine a
-    // second to finish anything it does asynchronously after opening the device.
-    print (now() + "waiting 1 s before pressing play");
+    // Before pressing play, let the engine finish what it does asynchronously after
+    // opening the device: on Windows it rebuilt the playback context at 0.24 s and
+    // dropped an earlier play. Also scan MIDI devices now: the engine's first scan
+    // otherwise comes 4 s after start, and if it finds devices it rebuilds every
+    // playing edit's device list, which stops the transport (#101).
+    print (now() + "scanning MIDI devices and waiting 1 s before pressing play");
+    engine.getDeviceManager().rescanMidiDeviceList();
     edit->dispatchPendingUpdatesSynchronously();
     transport.ensureContextAllocated();
     while (juce::Time::getMillisecondCounterHiRes() - started < 1000.0)
         pump();
 
-    print (now() + "pressing play");
+    const auto midiCounts = [&engine]
+    {
+        auto& dm = engine.getDeviceManager();
+        return juce::String (dm.getNumMidiInDevices()) + " MIDI in, " + juce::String (dm.getNumMidiOutDevices()) + " MIDI out";
+    };
+
+    print (now() + "pressing play (" + midiCounts() + ")");
     transport.setPosition (te::TimePosition());
     transport.play (false);
 
@@ -208,7 +223,7 @@ int play (juce::File audioFile)
         if (playing != wasPlaying)
         {
             print (now() + (playing ? "transport started" : "transport STOPPED") + " at position "
-                   + juce::String (transport.getPosition().inSeconds(), 3) + " s");
+                   + juce::String (transport.getPosition().inSeconds(), 3) + " s (" + midiCounts() + ")");
             wasPlaying = playing;
             stoppedSince = playing ? -1.0 : t;
         }
@@ -243,7 +258,44 @@ int play (juce::File audioFile)
 /** Plays the edit through a hosted audio device that this function drives itself,
     one block at a time, as a sound card's callback would. Exercises the same
     transport code as `play`, with no sound card, and checks what came out. */
-int liveCheck (const juce::File& outFolder)
+constexpr auto spikeMidiDeviceName = "CollabGod spike test MIDI";
+
+te::VirtualMidiInputDevice* findSpikeMidiDevice (te::Engine& engine)
+{
+    for (auto& device : engine.getDeviceManager().getMidiInDevices())
+        if (auto v = dynamic_cast<te::VirtualMidiInputDevice*> (device.get()))
+            if (v->getName() == spikeMidiDeviceName)
+                return v;
+
+    return nullptr;
+}
+
+/** Runs the message loop until `done` or a second has passed. Device list
+    changes are applied by the engine on a timer, not straight away. */
+void pumpUntil (const std::function<bool()>& done)
+{
+    const auto deadline = juce::Time::getMillisecondCounterHiRes() + 1000.0;
+
+    while (! done() && juce::Time::getMillisecondCounterHiRes() < deadline)
+        juce::MessageManager::getInstance()->runDispatchLoopUntil (5);
+}
+
+/** Removes the virtual MIDI device the MIDI test creates, waiting until the engine
+    has applied the change. Virtual devices are saved in the engine's settings, so
+    without this the next run would start with the device and see no change. */
+void removeSpikeMidiDevice (te::Engine& engine)
+{
+    pumpUntil ([&] { return findSpikeMidiDevice (engine) != nullptr; });
+
+    if (auto v = findSpikeMidiDevice (engine))
+        engine.getDeviceManager().deleteVirtualMidiDevice (*v);
+
+    pumpUntil ([&] { return findSpikeMidiDevice (engine) == nullptr; });
+}
+
+/** With changeMidiDevices, adds a virtual MIDI device halfway through playback,
+    as plugging in a MIDI controller would, and reports whether the transport kept going. */
+int liveCheck (const juce::File& outFolder, bool changeMidiDevices)
 {
     constexpr double sampleRate = 44100.0;
     constexpr int blockSize = 441;  // what the Windows Audio device used in the first manual test
@@ -277,6 +329,19 @@ int liveCheck (const juce::File& outFolder)
     juce::MidiBuffer midi;
     juce::Array<float> left, right;
 
+    // A device left over from an interrupted run would make our change a removal,
+    // and that removal would happen here, before play. Clear it first.
+    if (changeMidiDevices)
+    {
+        const auto until = juce::Time::getMillisecondCounterHiRes() + 200.0;
+        pumpUntil ([&] { return juce::Time::getMillisecondCounterHiRes() > until; });
+
+        if (findSpikeMidiDevice (engine) != nullptr)
+            removeSpikeMidiDevice (engine);
+    }
+
+    bool midiChanged = false, stoppedEarly = false;
+
     const bool finished = playToEnd (*edit, [&]
     {
         block.clear();
@@ -284,11 +349,40 @@ int liveCheck (const juce::File& outFolder)
         left.addArray (block.getReadPointer (0), blockSize);
         right.addArray (block.getReadPointer (1), blockSize);
         juce::MessageManager::getInstance()->runDispatchLoopUntil (1);
+
+        const double played = left.size() / sampleRate;
+
+        if (changeMidiDevices && ! midiChanged && played >= toneSeconds * 1.5)
+        {
+            midiChanged = true;
+            const auto result = engine.getDeviceManager().createVirtualMidiDevice (spikeMidiDeviceName);
+            print ("Added a virtual MIDI device after " + juce::String (played, 2) + " s of playback"
+                   + (result.wasOk() ? "" : ": " + result.getErrorMessage()));
+        }
+
+        // Once playing, a stopped transport will not restart on its own.
+        if (played > 0.5 && ! edit->getTransport().isPlaying())
+        {
+            stoppedEarly = true;
+            print ("Transport stopped after " + juce::String (played, 2) + " s of playback");
+            return false;
+        }
+
+        return true;
     });
+
+    if (changeMidiDevices)
+    {
+        removeSpikeMidiDevice (engine);
+        print (finished ? "PASS the transport kept playing through the MIDI device change"
+                        : "FAIL the transport stopped when the MIDI devices changed (see #101)");
+        return finished ? 0 : 1;
+    }
 
     if (! finished)
     {
-        print ("FAIL the transport did not reach the end of the edit after "
+        print (juce::String (stoppedEarly ? "FAIL the transport stopped before" : "FAIL the transport did not reach")
+               + " the end of the edit after "
                + juce::String (left.size() / sampleRate, 1) + " s of audio");
         return 1;
     }
@@ -331,7 +425,8 @@ void usage()
     print ("Usage:\n"
            "  engine_spike play [audio-file]   Play a sine tone, then the file, on the default output\n"
            "  engine_spike check [--out dir]   Render the same edit offline and check the result\n"
-           "  engine_spike live-check [--out dir]   Play it through a simulated sound card and check the result");
+           "  engine_spike live-check [--out dir]   Play it through a simulated sound card and check the result\n"
+           "  engine_spike live-check --change-midi-devices   Add a MIDI device halfway through and see if playback survives");
 }
 
 } // namespace
@@ -366,7 +461,7 @@ int main (int argc, char* argv[])
             out = juce::File::getCurrentWorkingDirectory().getChildFile (args[outIndex + 1]);
 
         out.createDirectory();
-        return liveCheck (out);
+        return liveCheck (out, args.contains ("--change-midi-devices"));
     }
 
     if (command == "play")

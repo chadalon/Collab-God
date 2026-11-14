@@ -128,3 +128,10 @@ add_test(NAME render_and_check
 add_test(NAME live_play_and_check
     COMMAND engine_spike live-check --out ${CMAKE_BINARY_DIR}/live-check)
 set_tests_properties(live_play_and_check PROPERTIES TIMEOUT 60)
+
+# Characterisation test for #101: adding a MIDI device while playing stops the
+# transport in this Tracktion Engine version. WILL_FAIL marks that as expected, so
+# this test starts failing, and tells us, if an update changes the behaviour.
+add_test(NAME midi_device_change_stops_transport
+    COMMAND engine_spike live-check --change-midi-devices --out ${CMAKE_BINARY_DIR}/midi-change-check)
+set_tests_properties(midi_device_change_stops_transport PROPERTIES TIMEOUT 60 WILL_FAIL TRUE)
