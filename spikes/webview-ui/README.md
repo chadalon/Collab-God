@@ -46,7 +46,7 @@ cmake --build build --config Release --parallel 2
 ctest --test-dir build -C Release --output-on-failure
 ```
 
-`--parallel 2` matters on an 8 GB Mac: with four jobs the engine-toolchain build stalled and restarted the machine (its finding 11). On a machine with more memory, drop the number. The first build compiles all of JUCE and Tracktion Engine again, as engine-toolchain did: about 12 minutes on the Intel Mac with two jobs.
+`--parallel 2` matters on an 8 GB Mac: with four jobs the engine-toolchain build stalled and restarted the machine (its finding 11). On a machine with more memory, drop the number. The first build compiles all of JUCE and Tracktion Engine again in this build folder; expect about as long as engine-toolchain's cold build, which took 12 minutes on the Intel Mac with two jobs. This spike's build has not been timed there.
 
 Then run it:
 
@@ -85,7 +85,7 @@ To work on the page, run `node build.mjs --watch` in `ui` and press **R** in the
 | WebView2 SDK (Windows only, build time) | 1.0.3485.44 | Microsoft's BSD-style license in the package's `LICENSE.txt`; read it before this goes into product | nuget.org, SHA-512 checked |
 | esbuild, TypeScript, Vitest (page build and tests only) | `ui/package-lock.json` | MIT, Apache-2.0, MIT | npm |
 
-The page has no runtime dependencies. It talks to `window.__JUCE__` through its own 80-line wrapper (`ui/src/bridge.ts`) that speaks the same protocol as JUCE's `@juce-framework/webview` package, so tests and a plain browser can supply a fake host.
+The page has no runtime dependencies. It talks to `window.__JUCE__` through its own small wrapper (`ui/src/bridge.ts`) that speaks the same protocol as JUCE's `@juce-framework/webview` package, so tests and a plain browser can supply a fake host.
 
 ## Findings
 
