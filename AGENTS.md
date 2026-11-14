@@ -49,6 +49,10 @@ The current phase is the earliest [milestone](../../milestones) that still has o
 | `spikes/relay` | `npm test` | Relay tests over real sockets on this machine, including TLS where `openssl` is installed |
 | `spikes/relay` | `npm run typecheck` | Strict TypeScript check |
 | `spikes/relay` | `npm run relay -- serve` | Run a relay; `host` and `join` run the test between two locations (see its README) |
+| `spikes/sample-index` | `npm ci` | Install pinned dependencies (Node 22 or newer) |
+| `spikes/sample-index` | `npm test` | Hashing, scanning, rescans, near matches and overlap on generated files |
+| `spikes/sample-index` | `npm run typecheck` | Strict TypeScript check |
+| `spikes/sample-index` | `npm run samples -- scan <folder> --index <file>` | Index sample folders; `export`, `compare`, `near` and `generate` are in its README |
 | `spikes/sample-transfer` | `npm ci` | Install pinned dependencies (Node 22 or newer). Run `npm ci` in `spikes/relay` too: this spike imports it |
 | `spikes/sample-transfer` | `npm test` | Unit tests, and transfers through a real relay over sockets on this machine |
 | `spikes/sample-transfer` | `npm run typecheck` | Strict TypeScript check |
