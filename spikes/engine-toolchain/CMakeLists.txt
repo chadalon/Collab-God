@@ -63,6 +63,31 @@ collabgod_declare_pinned(tracktion
 
 FetchContent_MakeAvailable(juce tracktion)
 
+# Apple clang 15 (Xcode 15, macOS 13/14) lacks C++20 parenthesised aggregate
+# initialisation, which tracktion_Archive.cpp relies on. Brace-init is the same
+# thing and builds everywhere. Remove once Tracktion fixes it or we require Xcode 16.
+if(APPLE)
+    set(_archive_cpp "${tracktion_SOURCE_DIR}/modules/tracktion_engine/model/export/tracktion_Archive.cpp")
+    file(READ "${_archive_cpp}" _archive_src)
+    string(REPLACE
+        "ExportableUpdate (f.oldRef, destItem->getProjectItemRef())"
+        "ExportableUpdate { f.oldRef, destItem->getProjectItemRef() }"
+        _archive_src "${_archive_src}")
+    file(WRITE "${_archive_cpp}" "${_archive_src}")
+
+    # Same cause: emplace_back (a, b) on the aggregate ChannelMap::Entry. A
+    # constructor makes it work without parenthesised aggregate init.
+    set(_cmap_h "${tracktion_SOURCE_DIR}/modules/tracktion_engine/utilities/tracktion_ChannelMap.h")
+    file(READ "${_cmap_h}" _cmap_src)
+    if(NOT _cmap_src MATCHES "Entry \\(int s, int d")
+        string(REPLACE
+            "        float gain = 1.0f;\n    };"
+            "        float gain = 1.0f;\n\n        Entry() = default;\n        Entry (int s, int d, float g = 1.0f) : source (s), dest (d), gain (g) {}\n    };"
+            _cmap_src "${_cmap_src}")
+        file(WRITE "${_cmap_h}" "${_cmap_src}")
+    endif()
+endif()
+
 add_subdirectory(${tracktion_SOURCE_DIR}/modules ${CMAKE_BINARY_DIR}/tracktion_modules)
 
 # ---------------------------------------------------------------------------
