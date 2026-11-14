@@ -166,30 +166,78 @@ int play (juce::File audioFile)
     print ("Playing a 440 Hz sine tone for " + juce::String (toneSeconds, 1) + " s, then "
            + audioFile.getFileName() + " (" + juce::String (length - toneSeconds, 1) + " s)");
 
-    // Print what the transport and device are doing four times a second, so a
-    // run on a real machine shows where playback goes wrong.
     auto& transport = edit->getTransport();
     auto* device = devices.getCurrentAudioDevice();
     const auto started = juce::Time::getMillisecondCounterHiRes();
-    double nextStatus = 0.0;
+    const auto now = [&] { return juce::String ((juce::Time::getMillisecondCounterHiRes() - started) / 1000.0, 2) + " s: "; };
+    const auto pump = [] { juce::MessageManager::getInstance()->runDispatchLoopUntil (10); };
 
-    const bool finished = playToEnd (*edit, [&]
+    // Log whenever the engine creates or destroys this edit's playback graph.
+    struct ContextLogger : te::TransportControl::Listener
     {
-        juce::MessageManager::getInstance()->runDispatchLoopUntil (20);
-        const auto elapsed = (juce::Time::getMillisecondCounterHiRes() - started) / 1000.0;
+        std::function<void()> onChange;
+        void playbackContextChanged() override { onChange(); }
+    } contextLogger;
+    contextLogger.onChange = [&] { print (now() + "engine rebuilt the playback context"); };
+    transport.addListener (&contextLogger);
 
-        if (elapsed >= nextStatus)
+    // On Windows the transport was stopped as soon as it started. Give the engine a
+    // second to finish anything it does asynchronously after opening the device.
+    print (now() + "waiting 1 s before pressing play");
+    edit->dispatchPendingUpdatesSynchronously();
+    transport.ensureContextAllocated();
+    while (juce::Time::getMillisecondCounterHiRes() - started < 1000.0)
+        pump();
+
+    print (now() + "pressing play");
+    transport.setPosition (te::TimePosition());
+    transport.play (false);
+
+    const auto end = length + 0.2;
+    const auto deadline = juce::Time::getMillisecondCounterHiRes() + (end + 6.0) * 1000.0;
+    bool wasPlaying = false;
+    int restarts = 0;
+    double stoppedSince = -1.0, nextStatus = 0.0;
+
+    while (transport.getPosition().inSeconds() < end && juce::Time::getMillisecondCounterHiRes() < deadline)
+    {
+        pump();
+        const auto t = juce::Time::getMillisecondCounterHiRes();
+        const bool playing = transport.isPlaying();
+
+        if (playing != wasPlaying)
         {
-            nextStatus += 0.25;
-            print (juce::String (elapsed, 2) + " s: " + (transport.isPlaying() ? "playing" : "STOPPED")
-                   + ", position " + juce::String (transport.getPosition().inSeconds(), 3) + " s"
+            print (now() + (playing ? "transport started" : "transport STOPPED") + " at position "
+                   + juce::String (transport.getPosition().inSeconds(), 3) + " s");
+            wasPlaying = playing;
+            stoppedSince = playing ? -1.0 : t;
+        }
+
+        // Stopped for 200 ms before the end: press play again, at most three times.
+        if (! playing && stoppedSince > 0.0 && t - stoppedSince > 200.0 && restarts < 3)
+        {
+            ++restarts;
+            print (now() + "pressing play again (" + juce::String (restarts) + " of 3)");
+            transport.play (false);
+            stoppedSince = t;
+        }
+
+        if (t - started >= nextStatus)
+        {
+            nextStatus = t - started + 500.0;
+            print (now() + "position " + juce::String (transport.getPosition().inSeconds(), 3) + " s"
                    + (transport.isPlayContextActive() ? "" : ", no playback context")
-                   + ", CPU " + juce::String (engine.getDeviceManager().getCpuUsage() * 100.0f, 0) + "%"
+                   + ", CPU " + juce::String (engine.getDeviceManager().getCpuUsage() * 100.0f, 1) + "%"
                    + ", dropouts " + juce::String (device != nullptr ? device->getXRunCount() : -1));
         }
-    });
-    print (finished ? "Done" : "FAIL the transport did not reach the end of the edit");
-    return finished ? 0 : 1;
+    }
+
+    const bool finished = transport.getPosition().inSeconds() >= end;
+    transport.stop (false, false);
+    transport.removeListener (&contextLogger);
+    print (finished ? (restarts == 0 ? "Done" : "Done, but only after pressing play again")
+                    : "FAIL the transport did not reach the end of the edit");
+    return finished && restarts == 0 ? 0 : 1;
 }
 
 /** Plays the edit through a hosted audio device that this function drives itself,
